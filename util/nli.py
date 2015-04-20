@@ -1,12 +1,19 @@
 # -*- coding: utf-8 -*-
 
+import os
+import sys
+
+"""Add root directory path"""
+root_dir = os.path.dirname(os.path.dirname(__file__))
+sys.path.append(root_dir)
+
 import re
 import sys
 import csv
-import copy
 import numpy as np
 import itertools
 from collections import Counter
+from features.features import featurizer
 
 try:
     import sklearn
@@ -24,7 +31,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.cross_validation import cross_val_score
 from sklearn import metrics
 
-from distributedwordreps import build, ShallowNeuralNetwork 
+from util.distributedwordreps import build, ShallowNeuralNetwork
 
 
 
@@ -122,29 +129,16 @@ def word_cross_product_features(t1, t2):
 
 
 
-def featurizer(reader=sick_train_reader, feature_function=word_overlap_features):
-    """Map the data in reader to a list of features according to feature_function,
-    and create the gold label vector."""
-    feats = []
-    labels = []
-    split_index = None
-    for label, t1, t2 in reader():
-        d = feature_function(t1, t2)
-        feats.append(d)
-        labels.append(label)              
-    return (feats, labels)
-
-
 
 
 def train_classifier(
         reader=sick_train_reader,
-        feature_function=word_overlap_features,
+        features=None,
         feature_selector=SelectFpr(chi2, alpha=0.05), # Use None to stop feature selection
         cv=10, # Number of folds used in cross-validation
         priorlims=np.arange(.1, 3.1, .1)): # regularization priors to explore (we expect something around 1)
     # Featurize the data:
-    feats, labels = featurizer(reader=reader, feature_function=feature_function) 
+    feats, labels = featurizer(reader=reader, features=features)
     
     # Map the count dictionaries to a sparse feature matrix:
     vectorizer = DictVectorizer(sparse=False)
@@ -190,7 +184,7 @@ def train_classifier(
     # Return the trained model along with the objects we need to
     # featurize test data in a way that aligns with our training
     # matrix:
-    return (mod, vectorizer, feature_selector, feature_function)
+    return (mod, vectorizer, feature_selector, features)
 
 
 
