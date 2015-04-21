@@ -8,12 +8,12 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
 import re
-import sys
 import csv
 import numpy as np
 import itertools
 from collections import Counter
 from features.features import featurizer
+from util.utils import str2tree, leaves, sick_train_reader, sick_dev_reader, sick_test_reader
 
 try:
     import sklearn
@@ -33,100 +33,17 @@ from sklearn import metrics
 
 from util.distributedwordreps import build, ShallowNeuralNetwork
 
-
-
-
-
-
-
 LABELS = ['ENTAILMENT', 'CONTRADICTION', 'NEUTRAL']
 
+#
+#
+# if __name__ == '__main__': # Prevent this example from loading on import of this module.
+#
+#     print str2tree("( ( A child ) ( is ( playing ( in ( a yard ) ) ) ) )")
 
-
-
-
-WORD_RE = re.compile(r"([^ \(\)]+)", re.UNICODE)
-
-def str2tree(s):
-    """Turns labeled bracketing s into a tree structure (tuple of tuples)"""
-    s = WORD_RE.sub(r'"\1",', s)
-    s = s.replace(")", "),").strip(",")
-    s = s.strip(",")
-    return eval(s)
-
-
-
-
-if __name__ == '__main__': # Prevent this example from loading on import of this module.
-    
-    print str2tree("( ( A child ) ( is ( playing ( in ( a yard ) ) ) ) )")
-
-
-
-
-def leaves(t):
-    """Returns all of the words (terminal nodes) in tree t"""
-    words = []
-    for x in t:
-        if isinstance(x, str):
-            words.append(x)
-        else:
-            words += leaves(x)
-    return words
-
-
-
-
-if __name__ == '__main__': # Prevent this example from loading on import of this module.
-    
-    t = str2tree("( ( A child ) ( is ( playing ( in ( a yard ) ) ) ) )")
-    print leaves(t)
-
-
-
-
-
-data_dir = 'nli-data/'
-
-def sick_reader(src_filename):
-    for example in csv.reader(file(src_filename), delimiter="\t"):
-        label, t1, t2 = example[:3]
-        if not label.startswith('%'): # Some files use leading % for comments.           
-            yield (label, str2tree(t1), str2tree(t2))
-
-
-
-
-def sick_train_reader():
-    return sick_reader(src_filename=data_dir+"SICK_train_parsed.txt")
-
-def sick_dev_reader():
-    return sick_reader(src_filename=data_dir+"SICK_trial_parsed.txt")
-
-
-
-
-def sick_test_reader():
-    return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt")
-
-
-
-
-
-
-def word_overlap_features(t1, t2):
-    overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
-    return Counter(overlap)
-
-
-
-
-def word_cross_product_features(t1, t2):
-    return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
-
-
-
-
+# if __name__ == '__main__': # Prevent this example from loading on import of this module.
+#
+#     t = str2tree("( ( A child ) ( is ( playing ( in ( a yard ) ) ) ) )")
 
 
 
@@ -189,17 +106,11 @@ def train_classifier(
 
 
 
-if __name__ == '__main__': # Prevent this example from loading on import of this module.
-    
-    overlapmodel = train_classifier(feature_function=word_overlap_features)
-
-
-
 
 def evaluate_trained_classifier(model=None, reader=sick_dev_reader):
     """Evaluate model, the output of train_classifier, on the data in reader."""
-    mod, vectorizer, feature_selector, feature_function = model
-    feats, labels = featurizer(reader=reader, feature_function=feature_function)
+    mod, vectorizer, feature_selector, features = model
+    feats, labels = featurizer(reader=reader, features = features)
     feat_matrix = vectorizer.transform(feats)
     if feature_selector:
         feat_matrix = feature_selector.transform(feat_matrix)
@@ -210,10 +121,12 @@ def evaluate_trained_classifier(model=None, reader=sick_dev_reader):
 
 
 if __name__ == '__main__': # Prevent this example from loading on import of this module.
+    overlapmodel = train_classifier(features=['word_overlap'])
     
     for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
         print "======================================================================"
         print readername
+
         print evaluate_trained_classifier(model=overlapmodel, reader=reader)
 
 
@@ -221,7 +134,7 @@ if __name__ == '__main__': # Prevent this example from loading on import of this
 
 if __name__ == '__main__': # Prevent this example from loading on import of this module.
     
-    crossmodel = train_classifier(feature_function=word_cross_product_features)
+    crossmodel = train_classifier(features=['word_cross_product'])
     
     for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
         print "======================================================================"
@@ -231,99 +144,98 @@ if __name__ == '__main__': # Prevent this example from loading on import of this
 
 
 
-
-
-
-
-GLOVE_MAT, GLOVE_VOCAB, _ = build('../distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
-
-
-
-def glvvec(w):
-    """Return the GloVe vector for w."""
-    i = GLOVE_VOCAB.index(w)
-    return GLOVE_MAT[i]
-
-def glove_features(t):
-    """Return the mean glove vector of the leaves in tree t."""
-    return np.mean([glvvec(w) for w in leaves(t) if w in GLOVE_VOCAB], axis=0)
-
-def vec_concatenate(u, v):
-    return np.concatenate((u, v)) 
-
-def glove_featurizer(t1, t2):
-    """Combined input vector based on glove_features and concatenation."""
-    return vec_concatenate(glove_features(t1), glove_features(t2))
-
-
-
-
-
-def labelvec(label):
-    """Return output vectors like [1,-1,-1], where the unique 1 is the true label."""
-    vec = np.repeat(-1.0, 3)
-    vec[LABELS.index(label)] = 1.0
-    return vec
-
-
-
-
-
-def data_prep(reader=sick_train_reader, featurizer=glove_featurizer):    
-    dataset = []
-    for label, t1, t2 in reader():     
-        dataset.append([featurizer(t1, t2), labelvec(label)])
-    return dataset
-
-
-
-
-def train_network(
-        hidden_dim=100, 
-        maxiter=1000, 
-        reader=sick_train_reader,
-        featurizer=glove_featurizer,
-        display_progress=False):  
-    dataset = data_prep(reader=reader, featurizer=featurizer)
-    net = ShallowNeuralNetwork(input_dim=len(dataset[0][0]), hidden_dim=hidden_dim, output_dim=len(LABELS))
-    net.train(dataset, maxiter=maxiter, display_progress=display_progress)
-    return (net, featurizer)
-
-
-
-
-def evaluate_trained_network(network=None, reader=sick_dev_reader):
-    """Evaluate network, the output of train_network, on the data in reader"""
-    net, featurizer = network
-    dataset = data_prep(reader=reader, featurizer=featurizer)
-    predictions = []
-    cats = []
-    for ex, cat in dataset:            
-        # The raw prediction is a triple of real numbers:
-        prediction = net.predict(ex)
-        # Argmax dimension for the prediction; this could be done better with
-        # an explicit softmax objective:
-        prediction = LABELS[np.argmax(prediction)]
-        predictions.append(prediction)
-        # Store the gold label for the classification report:
-        cats.append(LABELS[np.argmax(cat)])        
-    # Report:
-    print "======================================================================"
-    print metrics.classification_report(cats, predictions, target_names=LABELS)
-
-
-
-
-if __name__ == '__main__': # Prevent this example from loading on import of this module.
-
-    network = train_network(hidden_dim=10, maxiter=1000, reader=sick_train_reader, featurizer=glove_featurizer)
-    
-    for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
-        print "======================================================================"
-        print readername
-        evaluate_trained_network(network=network, reader=reader)
-
-
-
-
+#
+#
+#
+# GLOVE_MAT, GLOVE_VOCAB, _ = build('../distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+#
+#
+#
+# def glvvec(w):
+#     """Return the GloVe vector for w."""
+#     i = GLOVE_VOCAB.index(w)
+#     return GLOVE_MAT[i]
+#
+# def glove_features(t):
+#     """Return the mean glove vector of the leaves in tree t."""
+#     return np.mean([glvvec(w) for w in leaves(t) if w in GLOVE_VOCAB], axis=0)
+#
+# def vec_concatenate(u, v):
+#     return np.concatenate((u, v))
+#
+# def glove_featurizer(t1, t2):
+#     """Combined input vector based on glove_features and concatenation."""
+#     return vec_concatenate(glove_features(t1), glove_features(t2))
+#
+#
+#
+#
+#
+# def labelvec(label):
+#     """Return output vectors like [1,-1,-1], where the unique 1 is the true label."""
+#     vec = np.repeat(-1.0, 3)
+#     vec[LABELS.index(label)] = 1.0
+#     return vec
+#
+#
+#
+#
+#
+# def data_prep(reader=sick_train_reader, featurizer=glove_featurizer):
+#     dataset = []
+#     for label, t1, t2 in reader():
+#         dataset.append([featurizer(t1, t2), labelvec(label)])
+#     return dataset
+#
+#
+#
+#
+# def train_network(
+#         hidden_dim=100,
+#         maxiter=1000,
+#         reader=sick_train_reader,
+#         featurizer=glove_featurizer,
+#         display_progress=False):
+#     dataset = data_prep(reader=reader, featurizer=featurizer)
+#     net = ShallowNeuralNetwork(input_dim=len(dataset[0][0]), hidden_dim=hidden_dim, output_dim=len(LABELS))
+#     net.train(dataset, maxiter=maxiter, display_progress=display_progress)
+#     return (net, featurizer)
+#
+#
+#
+#
+# def evaluate_trained_network(network=None, reader=sick_dev_reader):
+#     """Evaluate network, the output of train_network, on the data in reader"""
+#     net, featurizer = network
+#     dataset = data_prep(reader=reader, featurizer=featurizer)
+#     predictions = []
+#     cats = []
+#     for ex, cat in dataset:
+#         # The raw prediction is a triple of real numbers:
+#         prediction = net.predict(ex)
+#         # Argmax dimension for the prediction; this could be done better with
+#         # an explicit softmax objective:
+#         prediction = LABELS[np.argmax(prediction)]
+#         predictions.append(prediction)
+#         # Store the gold label for the classification report:
+#         cats.append(LABELS[np.argmax(cat)])
+#     # Report:
+#     print "======================================================================"
+#     print metrics.classification_report(cats, predictions, target_names=LABELS)
+#
+#
+#
+# #
+# # if __name__ == '__main__': # Prevent this example from loading on import of this module.
+# #
+# #     network = train_network(hidden_dim=10, maxiter=1000, reader=sick_train_reader, featurizer=glove_featurizer)
+# #
+# #     for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
+# #         print "======================================================================"
+# #         print readername
+# #         evaluate_trained_network(network=network, reader=reader)
+#
+#
+#
+#
 
