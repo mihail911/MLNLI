@@ -14,7 +14,10 @@ import itertools
 from collections import Counter
 from features.features import featurizer
 from util.utils import str2tree, leaves, sick_train_reader, sick_dev_reader, sick_test_reader
+import time
+import logging
 
+logging.basicConfig(level=logging.INFO)
 try:
     import sklearn
 except ImportError:
@@ -25,7 +28,7 @@ if sklearn.__version__[:4] != '0.16':
     sys.exit(2)
 
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.feature_selection import SelectFpr, chi2
+from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
 from sklearn.linear_model import LogisticRegression
 from sklearn.grid_search import GridSearchCV
 from sklearn.cross_validation import cross_val_score
@@ -51,7 +54,7 @@ LABELS = ['ENTAILMENT', 'CONTRADICTION', 'NEUTRAL']
 def train_classifier(
         reader=sick_train_reader,
         features=None,
-        feature_selector=SelectFpr(chi2, alpha=0.05), # Use None to stop feature selection
+        feature_selector=SelectKBest(chi2, k=300), # Use None to stop feature selection
         cv=10, # Number of folds used in cross-validation
         priorlims=np.arange(.1, 3.1, .1)): # regularization priors to explore (we expect something around 1)
     # Featurize the data:
@@ -61,13 +64,12 @@ def train_classifier(
     vectorizer = DictVectorizer(sparse=False)
     X = vectorizer.fit_transform(feats)
 
-    ##### FEATURE SELECTION    
-    # (An optional step; not always productive). By default, we select all
-    # the features that pass the chi2 test of association with the
-    # class labels at p < 0.05. sklearn.feature_selection has other
-    # methods that are worth trying. I've seen particularly good results
-    # with the model-based methods, which require some changes to the
-    # current code.
+    #TODO: Rewrite below using Pipeline framework
+
+    searchmod_1 = LogisticRegression(fit_intercept=True, intercept_scaling=1)
+    kbest_params = [{'k': range(40, 200, 10)}]
+
+    #Feature Selection
     feat_matrix = None
     if feature_selector:
         feat_matrix = feature_selector.fit_transform(X, labels)
@@ -76,11 +78,11 @@ def train_classifier(
     
     ##### HYPER-PARAMETER SEARCH
     # Define the basic model to use for parameter search:
-    searchmod = LogisticRegression(fit_intercept=True, intercept_scaling=1)
+    searchmod_2 = LogisticRegression(fit_intercept=True, intercept_scaling=1)
     # Parameters to grid-search over:
     parameters = {'C':priorlims, 'penalty':['l1','l2']}  
     # Cross-validation grid search to find the best hyper-parameters:     
-    clf = GridSearchCV(searchmod, parameters, cv=cv)
+    clf = GridSearchCV(searchmod_2, parameters, cv=cv)
     clf.fit(feat_matrix, labels)
     params = clf.best_params_
 
@@ -119,28 +121,54 @@ def evaluate_trained_classifier(model=None, reader=sick_dev_reader):
 
 
 
+# #Test Word Overlap
+# if __name__ == '__main__': # Prevent this example from loading on import of this module.
+#     start_train = time.time()
+#     overlapmodel = train_classifier(features=['word_overlap'])
+#     end_train = time.time()
+#     logging.info("Time to Train Log Reg with Overlap: " + str(end_train - start_train))
+#
+#     for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
+#         print "======================================================================"
+#         print readername
+#
+#         start_test = time.time()
+#         print evaluate_trained_classifier(model=overlapmodel, reader=reader)
+#         end_test = time.time()
+#         logging.info("Time to Evaluate Log Reg with Overlap: " + str(end_test - start_test))
+#
+#
+#
+# #Test Cross Product
+# if __name__ == '__main__': # Prevent this example from loading on import of this module.
+#     start_train = time.time()
+#     crossmodel = train_classifier(features=['word_cross_product'])
+#     end_train = time.time()
+#     logging.info("Time to Train Log Reg with Cross Product: " + str(end_train - start_train))
+#
+#     for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
+#         print "======================================================================"
+#         print readername
+#
+#         start_test = time.time()
+#         print evaluate_trained_classifier(model=crossmodel, reader=reader)
+#         end_test = time.time()
+#         logging.info("Time to Evaluate Log Reg with Cross Product: " + str(end_test - start_test))
 
-if __name__ == '__main__': # Prevent this example from loading on import of this module.
-    overlapmodel = train_classifier(features=['word_overlap'])
-    
-    for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
-        print "======================================================================"
-        print readername
+#Test Word_Overlap + Cross_Product
+start_train = time.time()
+crossmodel = train_classifier(features=['word_cross_product'])
+end_train = time.time()
+logging.info("Time to Train Log Reg with Cross Product + Overlap: " + str(end_train - start_train))
 
-        print evaluate_trained_classifier(model=overlapmodel, reader=reader)
+for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
+    print "======================================================================"
+    print readername
 
-
-
-
-if __name__ == '__main__': # Prevent this example from loading on import of this module.
-    
-    crossmodel = train_classifier(features=['word_cross_product'])
-    
-    for readername, reader in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
-        print "======================================================================"
-        print readername
-        print evaluate_trained_classifier(model=crossmodel, reader=reader)
-
+    start_test = time.time()
+    print evaluate_trained_classifier(model=crossmodel, reader=reader)
+    end_test = time.time()
+    logging.info("Time to Evaluate Log Reg with Cross Product + Overlap: " + str(end_test - start_test))
 
 
 
