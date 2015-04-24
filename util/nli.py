@@ -16,6 +16,7 @@ from features.features import featurizer
 from util.utils import str2tree, leaves, sick_train_reader, sick_dev_reader, sick_test_reader
 import time
 import logging
+from sklearn.pipeline import Pipeline
 
 logging.basicConfig(level=logging.INFO)
 try:
@@ -75,6 +76,9 @@ def train_classifier(
         feat_matrix = feature_selector.fit_transform(X, labels)
     else:
         feat_matrix = X
+
+    classifier_pipe = Pipeline([('dict_vector', vectorizer, 'feature_selector', feature_selector),
+        ('clf', searchmod_1)]) #Pipeline for transforming data and training a model
     
     ##### HYPER-PARAMETER SEARCH
     # Define the basic model to use for parameter search:
