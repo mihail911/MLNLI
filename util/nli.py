@@ -50,7 +50,7 @@ LABELS = ['ENTAILMENT', 'CONTRADICTION', 'NEUTRAL']
 #     t = str2tree("( ( A child ) ( is ( playing ( in ( a yard ) ) ) ) )")
 
 
-
+#TODO: Perform some sort of weighting to feature vector (TF-IDF, PMI,etc.)
 
 def train_classifier(
         reader=sick_train_reader,
