@@ -44,7 +44,7 @@ def sick_train_reader():
     return sick_reader(src_filename=data_dir+"SICK_train_parsed.txt")
 
 def sick_dev_reader():
-    return sick_reader(src_filename=data_dir+"SICK_trial_parsed.txt")
+    return sick_reader(src_filename=data_dir+"SICK_dev_parsed.txt")
 
 def sick_test_reader():
     return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt")
