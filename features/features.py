@@ -83,7 +83,7 @@ def word_cross_product_features(t1, t2):
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features} #Mapping from feature to method that extracts  given features from sentences
 
-def featurizer(reader=sick_train_reader, features=None):
+def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
     and create the gold label vector."""
     feats = []
@@ -92,7 +92,7 @@ def featurizer(reader=sick_train_reader, features=None):
     for label, t1, t2 in reader():
         #print 'label: ', label, 't1: ', t1, 't2: ', t2
         feat_dict = {} #Stores all features extracted using feature functions
-        for feat in features:
+        for feat in features_funcs:
             d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
         #print 'feat_dict: ', feat_dict
