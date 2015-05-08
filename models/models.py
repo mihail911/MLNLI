@@ -31,8 +31,8 @@ def parameter_tune_log_reg():
     """Does hyperparameter tuning of logistic regression model."""
     pass
 
-def evaluate_model(pipeline = None, dev_reader = sick_dev_reader, features = None):
+def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None):
     """Evaluates the given model on the test data and outputs statistics."""
-    feat_vec, gold_labels = featurizer(sick_dev_reader, features)
+    feat_vec, gold_labels = featurizer(reader, features)
     predicted_labels = pipeline.predict(feat_vec)
-    print metrics.classification_report(predicted_labels, gold_labels)
+    print metrics.classification_report(gold_labels, predicted_labels)

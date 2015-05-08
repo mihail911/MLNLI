@@ -59,57 +59,53 @@ def train_classifier(
         feature_selector=SelectKBest(chi2, k=300), # Use None to stop feature selection
         cv=10, # Number of folds used in cross-validation
         priorlims=np.arange(.1, 3.1, .1)): # regularization priors to explore (we expect something around 1)
-    # Featurize the data:
-    #feats, labels = featurizer(reader=reader, features=features)
-    
-    # Map the count dictionaries to a sparse feature matrix:
-    # vectorizer = DictVectorizer(sparse=False)
-    # X = vectorizer.fit_transform(feats)
-    #
-    #
-    # searchmod_1 = LogisticRegression(fit_intercept=True, intercept_scaling=1)
-    # kbest_params = [{'k': range(40, 200, 10)}]
-    #
-    # #Feature Selection
-    # feat_matrix = None
-    # if feature_selector:
-    #     feat_matrix = feature_selector.fit_transform(X, labels)
-    # else:
-    #     feat_matrix = X
-    #
-    # classifier_pipe = Pipeline([('dict_vector', vectorizer, 'feature_selector', feature_selector),
-    #     ('clf', searchmod_1)]) #Pipeline for transforming data and training a model
-    #
-    # ##### HYPER-PARAMETER SEARCH
-    # # Define the basic model to use for parameter search:
-    # searchmod_2 = LogisticRegression(fit_intercept=True, intercept_scaling=1)
-    # # Parameters to grid-search over:
-    # parameters = {'C':priorlims, 'penalty':['l1','l2']}
-    # # Cross-validation grid search to find the best hyper-parameters:
-    # clf = GridSearchCV(searchmod_2, parameters, cv=cv)
-    # clf.fit(feat_matrix, labels)
-    # params = clf.best_params_
-    #
-    # # Establish the model we want using the parameters obtained from the search:
-    # mod = LogisticRegression(fit_intercept=True, intercept_scaling=1, C=params['C'], penalty=params['penalty'])
+    #Featurize the data:
+    feats, labels = featurizer(reader=reader, features_funcs=features)
 
-    ##### ASSESSMENT              
+    #Map the count dictionaries to a sparse feature matrix:
+    vectorizer = DictVectorizer(sparse=False)
+    X = vectorizer.fit_transform(feats)
+
+    #Feature Selection
+    feat_matrix = None
+    if feature_selector:
+        feat_matrix = feature_selector.fit_transform(X, labels)
+    else:
+        feat_matrix = X
+
+    #classifier_pipe = Pipeline([('dict_vector', vectorizer, 'feature_selector', feature_selector),
+    #    ('clf', searchmod_1)]) #Pipeline for transforming data and training a model
+
+    ##### HYPER-PARAMETER SEARCH
+    # Define the basic model to use for parameter search:
+    searchmod_2 = LogisticRegression(fit_intercept=True, intercept_scaling=1)
+    # Parameters to grid-search over:
+    parameters = {'C':priorlims, 'penalty':['l1','l2']}
+    # Cross-validation grid search to find the best hyper-parameters:
+    clf = GridSearchCV(searchmod_2, parameters, cv=cv)
+    clf.fit(feat_matrix, labels)
+    params = clf.best_params_
+
+    # Establish the model we want using the parameters obtained from the search:
+    #mod = LogisticRegression(fit_intercept=True, intercept_scaling=1, C=params['C'], penalty=params['penalty'])
+    mod = LogisticRegression()
+    #### ASSESSMENT
     # Cross-validation of our favored model; for other summaries, use different
     # values for scoring: http://scikit-learn.org/dev/modules/model_evaluation.html
     # scores = cross_val_score(mod, feat_matrix, labels, cv=cv, scoring="f1_macro")
     # print 'Best model', mod
     # print '%s features selected out of %s total' % (feat_matrix.shape[1], X.shape[1])
     # print 'F1 mean: %0.2f (+/- %0.2f)' % (scores.mean(), scores.std()*2)
-
+    #
     # TRAIN OUR MODEL:
-    #mod.fit(feat_matrix, labels)
-
+    mod.fit(feat_matrix, labels)
+    #
     # Return the trained model along with the objects we need to
     # featurize test data in a way that aligns with our training
 
-    return build_log_regression_model(sick_train_reader, features = features)
-    # matrix:
-    #return (mod, vectorizer, feature_selector, features)
+    #return build_log_regression_model(sick_train_reader, features = features)
+    #matrix:
+    return (mod, vectorizer, feature_selector, features)
 
 
 
@@ -118,12 +114,12 @@ def train_classifier(
 def evaluate_trained_classifier(model=None, reader=sick_dev_reader):
     """Evaluate model, the output of train_classifier, on the data in reader."""
     mod, vectorizer, feature_selector, features = model
-    feats, labels = featurizer(reader=reader, features = features)
+    feats, labels = featurizer(reader=reader, features_funcs = features)
     feat_matrix = vectorizer.transform(feats)
     if feature_selector:
         feat_matrix = feature_selector.transform(feat_matrix)
     predictions = mod.predict(feat_matrix)
-    return metrics.classification_report(labels, predictions)
+    print metrics.classification_report(labels, predictions)
 
 
 
@@ -164,19 +160,20 @@ def evaluate_trained_classifier(model=None, reader=sick_dev_reader):
 
 #Test Word_Overlap + Cross_Product
 start_train = time.time()
-pipeline = train_classifier(features=['word_overlap'])
+pipeline = train_classifier(features=['word_cross_product'])
 end_train = time.time()
-logging.info("Time to Train Log Reg with Cross Product + Overlap: " + str(end_train - start_train))
+logging.info("Time to Train Log Reg with Overlap: " + str(end_train - start_train))
 
-for readername, reader in (('Dev', sick_dev_reader),):
+for readername, reader in (('Train', sick_train_reader),('Dev', sick_dev_reader),):
     print "======================================================================"
-    print readername
+    print readername, reader
 
     start_test = time.time()
     #print evaluate_trained_classifier(model=crossmodel, reader=reader)
-    evaluate_model(pipeline, dev_reader = sick_dev_reader, features = ['word_overlap'])
+    #evaluate_model(pipeline, reader = reader, features = ['word_cross_product'])
+    evaluate_trained_classifier(model = pipeline, reader = reader)
     end_test = time.time()
-    logging.info("Time to Evaluate Log Reg with Cross Product + Overlap: " + str(end_test - start_test))
+    logging.info("Time to Evaluate Log Reg with Overlap: " + str(end_test - start_test))
 
 
 
