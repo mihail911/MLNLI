@@ -17,6 +17,16 @@ from nltk.stem import WordNetLemmatizer
 
 lemmatizer = WordNetLemmatizer()
 
+def word_overlap_features(t1, t2):
+    overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
+    return Counter(overlap)
+
+def word_cross_product_features(t1, t2):
+    return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
+features_mapping = {'word_cross_product': word_cross_product_features,
+            'word_overlap': word_overlap_features} #Mapping from feature to method that extracts  given features from sentences
+
 def extract_nouns(sent):
     """Extracts nouns in a given sentence."""
     tokens = word_tokenize(sent)
@@ -45,9 +55,7 @@ def extract_nouns_and_synsets(sent):
         synsets.extend(wn.synsets(noun))
     return (all_nouns, synsets)
 
-def word_overlap_features(t1, t2):
-    overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
-    return Counter(overlap)
+
 
 def synset_features(sent1, sent2):
     """Returns counter for all mutual synsets between two sentences."""
@@ -76,12 +84,6 @@ def hypernym_features(sent1, sent2):
 def antonym_features(sent1, sent2):
     """Use antonyms between sentences to recognize contradiction patterns."""
     #TODO!
-
-def word_cross_product_features(t1, t2):
-    return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
-
-features_mapping = {'word_cross_product': word_cross_product_features,
-            'word_overlap': word_overlap_features} #Mapping from feature to method that extracts  given features from sentences
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
