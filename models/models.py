@@ -70,7 +70,7 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 
     return grid_search.best_estimator_
 
-def parameter_tune_log_reg():
+def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
     parameters = {'clf__C': np.arange(.6, 2.2, .1), 'clf__penalty': ['l1', 'l2']} #'feature_selector__k': np.arange(300,400,100)}

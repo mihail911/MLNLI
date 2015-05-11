@@ -30,8 +30,8 @@ with open(arguments.conf_file, 'r') as f:
     params[feature_name_line[0].strip()] = feature_name_line[1].strip()
 
 
-print "Training model..."
-print "Using features: ", params['features']
+print "Training model '{0}' ... ".format(params['model'])
+print "With features: {0}".format(params['features'])
 
 #Build model by specifying vectorizer, feature selector, features
 model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'])
