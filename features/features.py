@@ -17,6 +17,13 @@ from nltk.stem import WordNetLemmatizer
 
 lemmatizer = WordNetLemmatizer()
 
+def word_overlap_features(t1, t2):
+    overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
+    return Counter(overlap)
+
+def word_cross_product_features(t1, t2):
+    return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
 def extract_nouns(sent):
     """Extracts nouns in a given sentence."""
     tokens = word_tokenize(sent)
@@ -45,6 +52,13 @@ def extract_nouns_and_synsets(sent):
         synsets.extend(wn.synsets(noun, pos=wn.NOUN))
     return (all_nouns, synsets)
 
+def noun_synset_dict(sent):
+    synsets = {}
+    all_nouns = extract_nouns(sent)
+    for noun in all_nouns:
+        synsets[noun] = wn.synsets(noun, pos=wn.NOUN)
+    return synsets
+
 def extract_adj_lemmas(sent):
     """Extracts all adjectives in a given sentence"""
     lemmas = []
@@ -63,16 +77,27 @@ def extract_adj_antonyms(sent):
         antonyms.extend(lemma.antonyms())
     return antonyms
 
-def word_overlap_features(t1, t2):
-    overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
-    return Counter(overlap)
-
-def synset_features(sent1, sent2):
+def synset_overlap_features(sent1, sent2):
     """Returns counter for all mutual synsets between two sentences."""
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
     overlap_synsets = [syn for syn in sent1_synsets if syn in sent2_synsets]
     return Counter(overlap_synsets)
+
+def synset_exclusive_first_features(sent1, sent2):
+    """Returns counter for all nouns in first sentence with no possible synonyms in second"""
+    sent1_synset_dict = noun_synset_dict(sent1)
+    sent2_synsets = extract_noun_synsets(sent2)
+    firstonly_nouns = [noun for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
+    return Counter(firstonly_nouns)
+
+def synset_exclusive_second_features(sent1, sent2):
+    """Returns counter for all nouns in second sentence with no possible synonyms in first"""
+    sent1_synsets = extract_noun_synsets(sent1)
+    sent2_synset_dict = noun_synset_dict(sent2)
+    secondonly_nouns = [noun for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
+    return Counter(secondonly_nouns)
+
 
 def hypernym_features(sent1, sent2):
     """ Calculate hypernyms of sent1 and check if synsets of sent2 contained in
@@ -84,7 +109,7 @@ def hypernym_features(sent1, sent2):
     """
     s1_nouns, s1_syns = extract_nouns_and_synsets(sent1)
     s2_syns = extract_noun_synsets(sent2)
-    all_hyper_synsets = set([]) #Stores the hypernym synsets of the nouns in the first sentence
+    all_hyper_synsets = set(s1_syns) #Stores the hypernym synsets of the nouns in the first sentence
     for syn in s1_syns:
         all_hyper_synsets.update(set([i for i in syn.closure(lambda s:s.hypernyms())]))
     synset_overlap = all_hyper_synsets & set(s2_syns) #Stores intersection of sent2 synsets and hypernyms of sent1
@@ -101,7 +126,10 @@ def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
 features_mapping = {'word_cross_product': word_cross_product_features,
-            'word_overlap': word_overlap_features} #Mapping from feature to method that extracts  given features from sentences
+            'word_overlap': word_overlap_features,
+            'synset_overlap' : synset_overlap_features,
+            'hypernyms' : hypernym_features,
+            'antonyms' : antonym_features} #Mapping from feature to method that extracts  given features from sentences
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
@@ -110,12 +138,10 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
     labels = []
     split_index = None
     for label, t1, t2 in reader():
-        #print 'label: ', label, 't1: ', t1, 't2: ', t2
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
             d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
-        #print 'feat_dict: ', feat_dict
         feats.append(feat_dict)
         labels.append(label)
     return (feats, labels)

@@ -15,8 +15,6 @@ parser = ArgumentParser('description = provide arguments for running model pipel
 parser.add_argument('--conf_file', help = 'name of configuration file ')
 arguments = parser.parse_args()
 
-logging.basicConfig(level=logging.INFO) #Initiate logging parameters
-
 params = {}
 
 #Loads the parameters set in the conf file and saves in a global dict.
@@ -33,12 +31,13 @@ with open(arguments.conf_file, 'r') as f:
 
 
 print "Training model..."
+print "Using features: ", params['features']
 
 #Build model by specifying vectorizer, feature selector, features
-model, feat_vec, labels = build_log_regression_model(features = params['features'])
-#report = evaluate_model(pipeline = model, features = params['features']) #Returns a classification report
+model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'])
+#report = evaluate_model(pipeline = model, features = params['features'], feature_file_name = params['features']) #Returns a classification report
 best_model = parameter_tune_log_reg(model, feat_vec, labels)
-print evaluate_model(best_model, features = params['features'])
+print evaluate_model(best_model, features = params['features'], file_name = params['feature_file'])
 
 print "Finished training and evaluating model"
 
