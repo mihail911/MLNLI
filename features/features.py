@@ -85,6 +85,7 @@ def synset_overlap_features(sent1, sent2):
     return Counter(overlap_synsets)
 
 def synset_exclusive_first_features(sent1, sent2):
+    """Returns counter for """
     sent1_synset_dict = noun_synset_dict(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
     firstonly_nouns = [noun for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
@@ -107,7 +108,7 @@ def hypernym_features(sent1, sent2):
     """
     s1_nouns, s1_syns = extract_nouns_and_synsets(sent1)
     s2_syns = extract_noun_synsets(sent2)
-    all_hyper_synsets = set([]) #Stores the hypernym synsets of the nouns in the first sentence
+    all_hyper_synsets = set(s1_syns) #Stores the hypernym synsets of the nouns in the first sentence
     for syn in s1_syns:
         all_hyper_synsets.update(set([i for i in syn.closure(lambda s:s.hypernyms())]))
     synset_overlap = all_hyper_synsets & set(s2_syns) #Stores intersection of sent2 synsets and hypernyms of sent1
