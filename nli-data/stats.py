@@ -1,3 +1,5 @@
+__author__=
+
 import os, sys, re
 
 ''' Prints the distribution of classification tags in a train / test set. ''' 
@@ -5,8 +7,7 @@ import os, sys, re
 classes = ["NEUTRAL", "ENTAILMENT", "CONTRADICTION"]
 filename = "SICK_train_parsed.txt"
 
-if __name__ == '__main__':
-    
+if __name__ == '__main__':    
     if len(sys.argv) > 1:
 
         for i, arg in enumerate(sys.argv[1:]):
