@@ -31,13 +31,28 @@ def test_hypernyms():
     if not features.hypernym_features(table_sent1, furniture_sent)['contains_hypernyms:']:
         result.add_failure("Basic hypernym not captured")
     if not features.hypernym_features(table_sent1, table_sent2)['contains_hypernyms:']:
-        result.add_failure("Reflexive hypernym (i.e. dog -> dog) not captured")
+        result.add_failure("Self-hypernym (i.e. dog -> dog) not captured")
     if features.hypernym_features(table_sent1, hot_sent)['contains_hypernyms:']:
         result.add_failure("Hypernym false positive")
     return result
 
-def test_synsets():
-    return False
+def test_synset_overlap():
+    way_sent1 = "There's no way I can do that"
+    way_sent2 = "I don't have the means to help"
+    result = TestResult("Synset overlap")
+    if not features.synset_overlap_features(way_sent1, way_sent2)[wn.synset('means.n.01')]:
+        result.add_failure("Basic synonym not captured")
+    return result
+
+def test_synset_exclusive():
+    result = TestResult("Exclusive synset")
+    sent1 = "The dog ate the meal, then peed on the tree"
+    sent2 = "The dog ate the meal, then went to bed"
+    if not features.synset_exclusive_first_features(sent1, sent2)['tree']:
+        result.add_failure("Exclusive noun not included")
+    if 'meal' in features.synset_exclusive_first_features(sent1, sent2):
+        result.add_failure["Included noun not actually exclusive to first sentence"]
+    return result
 
 def test_antonyms():
     hot_sent = "Of the hot soups, it is the best."
@@ -53,10 +68,13 @@ def run_feature_tests(print_results=True):
     results = []
     results.append(test_hypernyms())
     results.append(test_antonyms())
+    results.append(test_synset_overlap())
+    results.append(test_synset_exclusive())
     success = True
     for result in results:
         if print_results:
-            print result.full_messages()
+            for message in result.full_messages():
+                print message
         success = success and result.passed
     if print_results and success:
         print "All tests successful"
@@ -64,4 +82,4 @@ def run_feature_tests(print_results=True):
         print "Test failure, see above for details"
     return success
 
-print run_feature_tests()
+test_synset_exclusive()
