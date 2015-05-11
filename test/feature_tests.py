@@ -44,6 +44,16 @@ def test_synset_overlap():
         result.add_failure("Basic synonym not captured")
     return result
 
+def test_synset_exclusive():
+    result = TestResult("Exclusive synset")
+    sent1 = "The dog ate the meal, then peed on the tree"
+    sent2 = "The dog ate the meal, then went to bed"
+    if not features.synset_exclusive_first_features(sent1, sent2)['tree']:
+        result.add_failure("Exclusive noun not included")
+    if 'meal' in features.synset_exclusive_first_features(sent1, sent2):
+        result.add_failure["Included noun not actually exclusive to first sentence"]
+    return result
+
 def test_antonyms():
     hot_sent = "Of the hot soups, it is the best."
     cold_sent = "It is the worst cold soup"
@@ -59,6 +69,7 @@ def run_feature_tests(print_results=True):
     results.append(test_hypernyms())
     results.append(test_antonyms())
     results.append(test_synset_overlap())
+    results.append(test_synset_exclusive())
     success = True
     for result in results:
         if print_results:
@@ -71,4 +82,4 @@ def run_feature_tests(print_results=True):
         print "Test failure, see above for details"
     return success
 
-run_feature_tests()
+test_synset_exclusive()
