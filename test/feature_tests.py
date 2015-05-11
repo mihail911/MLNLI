@@ -82,4 +82,5 @@ def run_feature_tests(print_results=True):
         print "Test failure, see above for details"
     return success
 
-test_synset_exclusive()
+if __name__ == "__main__":
+    run_feature_tests()
