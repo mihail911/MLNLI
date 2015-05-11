@@ -34,7 +34,7 @@ def extract_noun_synsets(sent):
     synsets = []
     all_nouns = extract_nouns(sent)
     for noun in all_nouns:
-        synsets.extend(wn.synsets(noun))
+        synsets.extend(wn.synsets(noun, pos=wn.NOUN))
     return synsets
 
 def extract_nouns_and_synsets(sent):
@@ -42,8 +42,26 @@ def extract_nouns_and_synsets(sent):
     synsets = []
     all_nouns = extract_nouns(sent)
     for noun in all_nouns:
-        synsets.extend(wn.synsets(noun))
+        synsets.extend(wn.synsets(noun, pos=wn.NOUN))
     return (all_nouns, synsets)
+
+def extract_adj_lemmas(sent):
+    """Extracts all adjectives in a given sentence"""
+    lemmas = []
+    tokens = word_tokenize(sent)
+    pos_tagged = pos_tag(tokens)
+    for word in pos_tagged:
+        if word[1] in ['JJ', 'JJR', 'JJS']:
+            lemmas.extend(wn.lemmas(word[0], wn.ADJ))
+    return lemmas
+
+def extract_adj_antonyms(sent):
+    """Return list of all antonym lemmas for nouns in a given sentence"""
+    antonyms = []
+    all_adj_lemmas = extract_adj_lemmas(sent)
+    for lemma in all_adj_lemmas:
+        antonyms.extend(lemma.antonyms())
+    return antonyms
 
 def word_overlap_features(t1, t2):
     overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
@@ -54,7 +72,6 @@ def synset_features(sent1, sent2):
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
     overlap_synsets = [syn for syn in sent1_synsets if syn in sent2_synsets]
-
     return Counter(overlap_synsets)
 
 def hypernym_features(sent1, sent2):
@@ -75,7 +92,10 @@ def hypernym_features(sent1, sent2):
 
 def antonym_features(sent1, sent2):
     """Use antonyms between sentences to recognize contradiction patterns."""
-    #TODO!
+    sent2_lemmas = extract_adj_lemmas(sent2)
+    sent1_antonyms = extract_adj_antonyms(sent1)
+    antonyms = [lem for lem in sent1_antonyms if lem in sent2_lemmas]
+    return Counter(antonyms)
 
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
