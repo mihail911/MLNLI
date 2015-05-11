@@ -114,12 +114,10 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
     labels = []
     split_index = None
     for label, t1, t2 in reader():
-        #print 'label: ', label, 't1: ', t1, 't2: ', t2
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
             d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
-        #print 'feat_dict: ', feat_dict
         feats.append(feat_dict)
         labels.append(label)
     return (feats, labels)
