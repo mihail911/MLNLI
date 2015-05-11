@@ -85,13 +85,14 @@ def synset_overlap_features(sent1, sent2):
     return Counter(overlap_synsets)
 
 def synset_exclusive_first_features(sent1, sent2):
-    """Returns counter for """
+    """Returns counter for all nouns in first sentence with no possible synonyms in second"""
     sent1_synset_dict = noun_synset_dict(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
     firstonly_nouns = [noun for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
     return Counter(firstonly_nouns)
 
 def synset_exclusive_second_features(sent1, sent2):
+    """Returns counter for all nouns in second sentence with no possible synonyms in first"""
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synset_dict = noun_synset_dict(sent2)
     secondonly_nouns = [noun for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
