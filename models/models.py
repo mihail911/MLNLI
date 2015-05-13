@@ -58,8 +58,6 @@ def build_log_regression_model(train_reader = sick_train_reader, feature_vectori
     """Builds (trains) and returns an instance of a logistic regression model along with necessary.
     Features is a list of feature names to be extracted from the data."""
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
-
-
     feat_vec, labels = featurizer(sick_train_reader, features)
 
     clf_pipe.fit(feat_vec, labels)
@@ -69,6 +67,7 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
                     feature_selector = SelectKBest(chi2, k=300), feature_file_name = None, load_vec = None):
     """Builds (trains) and returns an instance of a SVM model along with necessary.
     Features is a list of feature names to be extracted from the data."""
+
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC())])
     feat_vec, labels = featurizer(sick_train_reader, features)
     clf_pipe.fit(feat_vec, labels)
@@ -76,7 +75,9 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
 
 def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of SVM model."""
-    parameters = {'clf__C': np.arange(.1, 3.1, .3), 'clf__penalty': ['l1', 'l2'], 'feature_selector__k': np.arange(300,400,100)}
+   
+    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
+                                                                            parameters), color.GREEN)
 
     print "Pipeline steps: ", [step for step, _ in pipeline.steps]
     print "Pipeline parameter grid: ", parameters
@@ -84,11 +85,8 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
     grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
     grid_search.fit(feat_vec, labels)
 
-    print "Best cross-validation score: ", grid_search.best_score_
-    best_params = grid_search.best_params_
-
-    print "Best params: ", best_params
-
+    prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
+                                                              grid_search.best_params_) , color.RED)
     return grid_search.best_estimator_
 
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
