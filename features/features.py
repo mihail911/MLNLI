@@ -122,6 +122,9 @@ def antonym_features(sent1, sent2):
     antonyms = [lem for lem in sent1_antonyms if lem in sent2_lemmas]
     return Counter(antonyms)
 
+def word_cross_product_features(t1, t2):
+    return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
@@ -137,12 +140,10 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
     labels = []
     split_index = None
     for label, t1, t2 in reader():
-        #print 'label: ', label, 't1: ', t1, 't2: ', t2
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
             d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
-        #print 'feat_dict: ', feat_dict
         feats.append(feat_dict)
         labels.append(label)
     return (feats, labels)
