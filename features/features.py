@@ -126,7 +126,9 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
             'hypernyms' : hypernym_features,
-            'antonyms' : antonym_features} #Mapping from feature to method that extracts  given features from sentences
+            'antonyms' : antonym_features,
+            'first_not_second' : synset_exclusive_first_features,
+            'second_not_first' : synset_exclusive_second_features} #Mapping from feature to method that extracts  given features from sentences
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
