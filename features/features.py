@@ -3,6 +3,7 @@ __author__ = 'mihaileric'
 import os
 import sys
 
+
 """Add root directory path"""
 root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
@@ -14,6 +15,7 @@ from util.utils import sick_train_reader, leaves
 from nltk import word_tokenize, pos_tag
 from nltk.corpus import wordnet as wn
 from nltk.stem import WordNetLemmatizer
+from util.colors import color, prettyPrint
 
 lemmatizer = WordNetLemmatizer()
 
@@ -83,7 +85,7 @@ def synset_overlap_features(t1, t2):
     sent2 = ' '.join(leaves(t2))
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
-    overlap_synsets = [syn for syn in sent1_synsets if syn in sent2_synsets]
+    overlap_synsets = [str(syn) for syn in sent1_synsets if syn in sent2_synsets]
     return Counter(overlap_synsets)
 
 def synset_exclusive_first_features(t1, t2):
@@ -92,7 +94,7 @@ def synset_exclusive_first_features(t1, t2):
     sent2 = ' '.join(leaves(t2))
     sent1_synset_dict = noun_synset_dict(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
-    firstonly_nouns = [noun for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
+    firstonly_nouns = [str(noun) for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
     return Counter(firstonly_nouns)
 
 def synset_exclusive_second_features(t1, t2):
@@ -101,7 +103,7 @@ def synset_exclusive_second_features(t1, t2):
     sent2 = ' '.join(leaves(t2))
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synset_dict = noun_synset_dict(sent2)
-    secondonly_nouns = [noun for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
+    secondonly_nouns = [str(noun) for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
     return Counter(secondonly_nouns)
 
 
@@ -120,7 +122,7 @@ def hypernym_features(t1, t2):
     all_hyper_synsets = set(s1_syns) #Stores the hypernym synsets of the nouns in the first sentence
     for syn in s1_syns:
         all_hyper_synsets.update(set([i for i in syn.closure(lambda s:s.hypernyms())]))
-    synset_overlap = all_hyper_synsets & set(s2_syns) #Stores intersection of sent2 synsets and hypernyms of sent1
+    synset_overlap = all_hyper_synsets & set(s2_syns) # Stores intersection of sent2 synsets and hypernyms of sent1
     return Counter({'contains_hypernyms:': len(synset_overlap) >= 1})
 
 def antonym_features(t1, t2):
@@ -129,7 +131,7 @@ def antonym_features(t1, t2):
     sent2 = ' '.join(leaves(t2))
     sent2_lemmas = extract_adj_lemmas(sent2)
     sent1_antonyms = extract_adj_antonyms(sent1)
-    antonyms = [lem for lem in sent1_antonyms if lem in sent2_lemmas]
+    antonyms = [str(lem) for lem in sent1_antonyms if lem in sent2_lemmas]
     return Counter(antonyms)
 
 def word_cross_product_features(t1, t2):
@@ -145,15 +147,19 @@ features_mapping = {'word_cross_product': word_cross_product_features,
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
-    and create the gold label vector."""
+    and create the gold label vector.
+
+    Valid feature_funcs return a dict of string : int key-value pairs.  """
     feats = []
     labels = []
     split_index = None
+
     for label, t1, t2 in reader():
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
             d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
+
         feats.append(feat_dict)
         labels.append(label)
     return (feats, labels)

@@ -29,6 +29,7 @@ with open(arguments.conf_file, 'r') as f:
 		kv = re.split(r'[ ,:;]*', line.rstrip())
 		val = kv[1:] if (len(kv) > 2 or kv[0] == 'features') else kv[1]
 		params[ kv[0] ] = val
+	print params
 
 prettyPrint("===" * 16 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
 prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
@@ -36,9 +37,9 @@ prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
 start_train = time.time()
 # Build model by specifying vectorizer, feature selector, features
 
-model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'])
+model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'] + ".train", 
+													 load_vec = params['load_vectors'])
 if params['load_vectors'] != 'true':
-
 	save_vectors(feat_vec, labels, params['feature_file'] + ".train")
 
 best_model = parameter_tune_log_reg(model, feat_vec, labels)
@@ -47,7 +48,8 @@ end_train = time.time()
 prettyPrint ("Finished training.  Took {0:.2f} seconds".format(end_train - start_train), color.RED)
 
 # Training set , Dev set evaluation
-evaluate_model(best_model, reader = 'sick_train_reader', features = params['features'], load_vec = params['load_vectors'])
+# Training set, we always want to load from disk, because we save to disk immediately beforehand. 
+evaluate_model(best_model, reader = 'sick_train_reader', features = params['features'], load_vec = 'true')
 prettyPrint ('===' * 16, color.YELLOW)
 evaluate_model(best_model, features = params['features'], file_name = params['feature_file'] + ".dev", load_vec = params['load_vectors'])
 
