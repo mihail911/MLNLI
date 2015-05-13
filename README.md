@@ -9,5 +9,5 @@ Project for Natural Language Understanding
     * `features:` specifies the features to extract from the data 
         * choose from among: `word_overlap`, `word_cross_product`, `synset`, `hypernym`, `antonym`
     * `feature_file:` specifies the name of the feature file to be generated
-
+    * `load_vectors:` [Optional] indicates whether to use featurized vectors and classification labels already stored on disk in          the given filename.   
 
