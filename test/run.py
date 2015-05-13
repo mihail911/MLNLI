@@ -38,7 +38,6 @@ start_train = time.time()
 
 model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'])
 if params['load_vectors'] != 'true':
-
 	save_vectors(feat_vec, labels, params['feature_file'] + ".train")
 
 best_model = parameter_tune_log_reg(model, feat_vec, labels)

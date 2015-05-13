@@ -75,7 +75,8 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
 
 def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of SVM model."""
-   
+
+    parameters = {'clf__C': np.arange(.1, 3.1, .3), 'clf__penalty': ['l1', 'l2'], 'feature_selector__k': np.arange(300,400,100)}
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
 
