@@ -42,14 +42,15 @@ model, feat_vec, labels = build_log_regression_model(features = params['features
 if params['load_vectors'] != 'true':
 	save_vectors(feat_vec, labels, params['feature_file'] + ".train")
 
-best_model = parameter_tune_log_reg(model, feat_vec, labels)
+#best_model = parameter_tune_log_reg(model, feat_vec, labels)
+best_model = model
 
 end_train = time.time() 
 prettyPrint ("Finished training.  Took {0:.2f} seconds".format(end_train - start_train), color.RED)
 
 # Training set , Dev set evaluation
 # Training set, we always want to load from disk, because we save to disk immediately beforehand. 
-evaluate_model(best_model, reader = 'sick_train_reader', features = params['features'], load_vec = 'true')
+evaluate_model(best_model, reader = 'sick_train_reader', features = params['features'], file_name = params['feature_file'], load_vec = 'true')
 prettyPrint ('===' * 16, color.YELLOW)
 evaluate_model(best_model, features = params['features'], file_name = params['feature_file'] + ".dev", load_vec = params['load_vectors'])
 
