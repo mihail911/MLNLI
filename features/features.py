@@ -77,29 +77,35 @@ def extract_adj_antonyms(sent):
         antonyms.extend(lemma.antonyms())
     return antonyms
 
-def synset_overlap_features(sent1, sent2):
+def synset_overlap_features(t1, t2):
     """Returns counter for all mutual synsets between two sentences."""
+    sent1 = ' '.join(leaves(t1))
+    sent2 = ' '.join(leaves(t2))
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
-    overlap_synsets = [syn for syn in sent1_synsets if syn in sent2_synsets]
+    overlap_synsets = [str(syn) for syn in sent1_synsets if syn in sent2_synsets]
     return Counter(overlap_synsets)
 
-def synset_exclusive_first_features(sent1, sent2):
+def synset_exclusive_first_features(t1, t2):
     """Returns counter for all nouns in first sentence with no possible synonyms in second"""
+    sent1 = ' '.join(leaves(t1))
+    sent2 = ' '.join(leaves(t2))
     sent1_synset_dict = noun_synset_dict(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
-    firstonly_nouns = [noun for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
+    firstonly_nouns = [str(noun) for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
     return Counter(firstonly_nouns)
 
-def synset_exclusive_second_features(sent1, sent2):
+def synset_exclusive_second_features(t1, t2):
     """Returns counter for all nouns in second sentence with no possible synonyms in first"""
+    sent1 = ' '.join(leaves(t1))
+    sent2 = ' '.join(leaves(t2))
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synset_dict = noun_synset_dict(sent2)
-    secondonly_nouns = [noun for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
+    secondonly_nouns = [str(noun) for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
     return Counter(secondonly_nouns)
 
 
-def hypernym_features(sent1, sent2):
+def hypernym_features(t1, t2):
     """ Calculate hypernyms of sent1 and check if synsets of sent2 contained in
     hypernyms of sent1. Trying to capture patterns of the form
     'A dog is jumping.' entails 'An animal is being active.'
@@ -107,6 +113,8 @@ def hypernym_features(sent1, sent2):
 
     TODO: Fix missing simple entail inference such as dog -> dog
     """
+    sent1 = ' '.join(leaves(t1))
+    sent2 = ' '.join(leaves(t2))
     s1_nouns, s1_syns = extract_nouns_and_synsets(sent1)
     s2_syns = extract_noun_synsets(sent2)
     all_hyper_synsets = set(s1_syns) #Stores the hypernym synsets of the nouns in the first sentence
@@ -115,11 +123,13 @@ def hypernym_features(sent1, sent2):
     synset_overlap = all_hyper_synsets & set(s2_syns) #Stores intersection of sent2 synsets and hypernyms of sent1
     return Counter({'contains_hypernyms:': len(synset_overlap) >= 1})
 
-def antonym_features(sent1, sent2):
+def antonym_features(t1, t2):
     """Use antonyms between sentences to recognize contradiction patterns."""
+    sent1 = ' '.join(leaves(t1))
+    sent2 = ' '.join(leaves(t2))
     sent2_lemmas = extract_adj_lemmas(sent2)
     sent1_antonyms = extract_adj_antonyms(sent1)
-    antonyms = [lem for lem in sent1_antonyms if lem in sent2_lemmas]
+    antonyms = [str(lem) for lem in sent1_antonyms if lem in sent2_lemmas]
     return Counter(antonyms)
 
 def word_cross_product_features(t1, t2):
