@@ -1,4 +1,4 @@
-__author__=
+__author__= 'rhyschris'
 
 import os, sys, re
 

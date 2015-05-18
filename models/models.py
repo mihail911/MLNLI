@@ -59,18 +59,23 @@ def build_log_regression_model(train_reader = sick_train_reader, feature_vectori
     Features is a list of feature names to be extracted from the data."""
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
 
-    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(reader, features)
+    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
+    if not load_vec:    
+        save_vectors(feat_vec, labels, file_extension = file_name)
 
     clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
 
 def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, 
-                    feature_selector = SelectKBest(chi2, k=300), feature_file_name = None, load_vec = None):
+                    feature_selector = SelectKBest(chi2, k=300), file_name = None, load_vec = None):
     """Builds (trains) and returns an instance of a SVM model along with necessary.
     Features is a list of feature names to be extracted from the data."""
 
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC())])
-    feat_vec, labels = load_vectors (feature_file_name) if load_vec else featurizer(reader, features)
+    feat_vec, labels = load_vectors (feature_file_name) if load_vec else featurizer(train_reader, features)
+    if not load_vec:
+        save_vectors (feat_vec, gold_labels, file_name)
+
     clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
 
@@ -94,7 +99,7 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
-    parameters = {'clf__C': np.arange(.6, 2.2, .1), 'clf__penalty': ['l1', 'l2']} #'feature_selector__k': np.arange(300,400,100)}
+    parameters = {'clf__C': np.arange(.6, .7, .1), 'clf__penalty': ['l2']} #'feature_selector__k': np.arange(300,400,100)}
 
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
@@ -109,8 +114,8 @@ def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
 
 def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = "", load_vec = None):
     """Evaluates the given model on the test data and outputs statistics."""
+    
     prettyColor = color.RED
-
     if reader == 'sick_dev_reader':
         reader = sick_dev_reader
         file_name += ".dev"
