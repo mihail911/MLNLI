@@ -9,6 +9,7 @@ sys.path.append(root_dir)
 
 import numpy as np
 import cPickle as pickle
+import time
 
 from features.features import word_cross_product_features, word_overlap_features, hypernym_features, featurizer
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
@@ -99,7 +100,7 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
-    parameters = {'clf__C': np.arange(.6, .7, .1), 'clf__penalty': ['l2']} #'feature_selector__k': np.arange(300,400,100)}
+    parameters = {'clf__C': np.arange(2.7,1.0, -0.1)} #'feature_selector__k': np.arange(300,400,100)}
 
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
@@ -130,3 +131,4 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
 
     predicted_labels = pipeline.predict(feat_vec)
     prettyPrint( metrics.classification_report(gold_labels, predicted_labels), prettyColor)
+

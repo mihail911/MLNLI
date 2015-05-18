@@ -16,13 +16,13 @@ from argparse import ArgumentParser
 from util.colors import color, prettyPrint
 
 parser = ArgumentParser('description = provide arguments for running model pipeline')
-parser.add_argument('--conf_file', help = 'name of configuration file ')
+parser.add_argument('--conf', help = 'name of configuration file ')
 arguments = parser.parse_args()
 
 params = collections.defaultdict(list)
 # Loads the parameters set in the conf file and saves in a global dict.
 # TODO: regex split a little hacky
-with open(arguments.conf_file, 'r') as f:
+with open(arguments.conf, 'r') as f:
 	stream = f.readlines()
 	for line in stream:	
 		kv = re.split(r'[ ,:;]*', line.rstrip())
@@ -32,6 +32,7 @@ with open(arguments.conf_file, 'r') as f:
 params['load_vectors'] = True if params['load_vectors'].lower() == 'true' else False 
 
 print params
+
 
 prettyPrint("===" * 16 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
 prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
