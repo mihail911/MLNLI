@@ -24,10 +24,14 @@ class TestResult:
 
 
 def test_hypernyms():
-    table_sent1 = str2tree("I hate when the table is too short.")
-    table_sent2 = str2tree("What a cute table!")
-    furniture_sent = str2tree("That furniture is ugly.")
-    hot_sent = str2tree("Of the hot soups, it is the best.")
+
+    table_sent1 = "I hate when the table is too short."
+    table_sent2 = "What a cute table!"
+    furniture_sent = "That furniture is ugly."
+    hot_sent = "Of the hot soups, it is the best."
+    dog_sent1 = "The dog is jumping on the bed."
+    dog_sent2 = "I look at the dog being active."
+
     result = TestResult("Hypernyms")
     if not features.hypernym_features(table_sent1, furniture_sent)['contains_hypernyms:']:
         result.add_failure("Basic hypernym not captured")

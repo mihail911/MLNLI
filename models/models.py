@@ -8,7 +8,6 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
 import numpy as np
-import logging
 import cPickle as pickle
 
 from features.features import word_cross_product_features, word_overlap_features, hypernym_features, featurizer
@@ -18,44 +17,69 @@ from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from util.utils import sick_train_reader, sick_dev_reader
+from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
-def build_log_regression_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None):
 
-    """Builds (trains) and returns an instance of a logistic regression model along with necessary.
-    Features is a list of feature names to be extracted from the data."""
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
+def save_vectors (feat_vec = None, labels = None, file_extension = None):
+    """ Saves the feature vectors and classification labels under the given file extension.  """
 
-    feat_vec, labels = featurizer(sick_train_reader, features)
+    feat_file_name = 'output/' + file_extension + '.feature'
+    label_file_name = 'output/' + file_extension + '.label'
 
-    feature_file_name = 'output/' + file_name + '.train.feature'
-    label_file_name = 'output/' + file_name + '.train.label'
-
-    print 'Saving feature vector file: ', feature_file_name
-    print 'Saving labels file: ', label_file_name
+    prettyPrint('Saving feature vector file: {0} ... \n'
+                'Saving Labels file: {1} ... '.format(feat_file_name, label_file_name), color.CYAN)
 
     #Save feature vector to disk
-    with open(feature_file_name, 'w') as f:
+    with open(feat_file_name, 'w') as f:
         pickle.dump(feat_vec, f)
     #Save label file
     with open(label_file_name, 'w') as f:
         pickle.dump(labels, f)
 
+def load_vectors (file_extension = None):
+    """ Loads the feature vector and classification labels from the canonical output files in output/ """
+
+    feat_file_name = 'output/' + file_extension + '.feature'
+    label_file_name = 'output/' + file_extension + '.label'
+
+    prettyPrint( "Loading feature vectors and labels from disk ... ", color.CYAN)
+    with open(feat_file_name, 'r') as f:
+        feat_vec = pickle.load(f)
+    with open(label_file_name, 'r') as f:
+        labels = pickle.load(f)
+    prettyPrint ("Done loading feature vectors.", color.CYAN)
+    return feat_vec, labels
+
+def build_log_regression_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, 
+                               feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
+
+    """Builds (trains) and returns an instance of a logistic regression model along with necessary.
+    Features is a list of feature names to be extracted from the data."""
+    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
+
+    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(reader, features)
+
     clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
 
-def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, feature_selector = SelectKBest(chi2, k=300), feature_file_name = None):
+def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, 
+                    feature_selector = SelectKBest(chi2, k=300), feature_file_name = None, load_vec = None):
     """Builds (trains) and returns an instance of a SVM model along with necessary.
     Features is a list of feature names to be extracted from the data."""
+
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC())])
-    feat_vec, labels = featurizer(sick_train_reader, features)
+    feat_vec, labels = load_vectors (feature_file_name) if load_vec else featurizer(reader, features)
     clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
 
 def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of SVM model."""
+
     parameters = {'clf__C': np.arange(.1, 3.1, .3), 'clf__penalty': ['l1', 'l2'], 'feature_selector__k': np.arange(300,400,100)}
+    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
+                                                                            parameters), color.GREEN)
 
     print "Pipeline steps: ", [step for step, _ in pipeline.steps]
     print "Pipeline parameter grid: ", parameters
@@ -63,11 +87,8 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
     grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
     grid_search.fit(feat_vec, labels)
 
-    print "Best score: ", grid_search.best_score_
-    best_params = grid_search.best_params_
-
-    print "Best params: ", best_params
-
+    prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
+                                                              grid_search.best_params_) , color.RED)
     return grid_search.best_estimator_
 
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
@@ -75,35 +96,32 @@ def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
 
     parameters = {'clf__C': np.arange(.6, 2.2, .1), 'clf__penalty': ['l1', 'l2']} #'feature_selector__k': np.arange(300,400,100)}
 
-    print "Pipeline steps: ", [step for step, _ in pipeline.steps]
-    print "Pipeline parameter grid: ", parameters
+    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
+                                                                            parameters), color.GREEN)
 
     grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
     grid_search.fit(feat_vec, labels)
 
-    print "Best score: ", grid_search.best_score_
-    best_params = grid_search.best_params_
-
-    print "Best params: ", best_params
+    prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
+                                                              grid_search.best_params_) , color.RED)
 
     return grid_search.best_estimator_
 
-def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = None):
+def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = "", load_vec = None):
     """Evaluates the given model on the test data and outputs statistics."""
-    feat_vec, gold_labels = featurizer(reader, features)
+    prettyColor = color.RED
 
-    feature_file_name = 'output/' + file_name + '.train.feature'
-    label_file_name = 'output/' + file_name + '.train.label'
+    if reader == 'sick_dev_reader':
+        reader = sick_dev_reader
+        file_name += ".dev"
+    elif reader == 'sick_train_reader':
+        reader = sick_train_reader
+        file_name += ".train"
+        prettyColor = color.CYAN
 
-    print 'Saving feature vector file: ', feature_file_name
-    print 'Saving labels file: ', label_file_name
-
-    #Save feature vector to disk
-    with open(feature_file_name + '.dev.feature', 'w') as f:
-        pickle.dump(feat_vec, f)
-    #Save label file
-    with open(feature_file_name + '.dev.label', 'w') as f:
-        pickle.dump(gold_labels, f)
+    feat_vec, gold_labels = load_vectors (file_name) if load_vec else featurizer(reader, features)
+    if not load_vec:
+        save_vectors (feat_vec, gold_labels, file_name)
 
     predicted_labels = pipeline.predict(feat_vec)
-    print metrics.classification_report(gold_labels, predicted_labels)
+    prettyPrint( metrics.classification_report(gold_labels, predicted_labels), prettyColor)
