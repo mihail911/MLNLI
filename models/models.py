@@ -10,6 +10,7 @@ sys.path.append(root_dir)
 import numpy as np
 import logging
 import cPickle as pickle
+import time
 
 from features.features import word_cross_product_features, word_overlap_features, hypernym_features, featurizer
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
@@ -25,7 +26,7 @@ def build_log_regression_model(train_reader = sick_train_reader, feature_vectori
 
     """Builds (trains) and returns an instance of a logistic regression model along with necessary.
     Features is a list of feature names to be extracted from the data."""
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
+    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression(C=2.4))])
 
     feat_vec, labels = featurizer(sick_train_reader, features)
 
@@ -73,7 +74,7 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
-    parameters = {'clf__C': np.arange(.6, 2.2, .1), 'clf__penalty': ['l1', 'l2']} #'feature_selector__k': np.arange(300,400,100)}
+    parameters = {'clf__penalty':['l1','l2'], 'clf__C': np.arange(2.7,2.0, -0.1)} #'feature_selector__k': np.arange(300,400,100)}
 
     print "Pipeline steps: ", [step for step, _ in pipeline.steps]
     print "Pipeline parameter grid: ", parameters
@@ -88,22 +89,27 @@ def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
 
     return grid_search.best_estimator_
 
-def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = None):
-    """Evaluates the given model on the test data and outputs statistics."""
-    feat_vec, gold_labels = featurizer(reader, features)
+def evaluate_model(pipeline = None, features = None, file_name = None):
+    """Evaluates the given model on data and outputs statistics."""
 
-    feature_file_name = 'output/' + file_name + '.train.feature'
-    label_file_name = 'output/' + file_name + '.train.label'
+    for reader_name, reader_func in (('Train', sick_train_reader), ('Dev', sick_dev_reader)):
+        feat_vec, gold_labels = featurizer(reader_func, features)
 
-    print 'Saving feature vector file: ', feature_file_name
-    print 'Saving labels file: ', label_file_name
+        dict_vec = pipeline.steps[0][1] #Extracts the dictVectorizer from the pipeline object (assumes vectorizer is first transform applied)
+        print reader_name + ' Feature Set Size: ', len(dict_vec.feature_names_)
 
-    #Save feature vector to disk
-    with open(feature_file_name + '.dev.feature', 'w') as f:
-        pickle.dump(feat_vec, f)
-    #Save label file
-    with open(feature_file_name + '.dev.label', 'w') as f:
-        pickle.dump(gold_labels, f)
+        feature_file_name = 'output/' + file_name + '.' + reader_name + '.feature'
+        label_file_name = 'output/' + file_name + '.' + reader_name + '.label'
 
-    predicted_labels = pipeline.predict(feat_vec)
-    print metrics.classification_report(gold_labels, predicted_labels)
+        print 'Saving feature vector file: ', feature_file_name
+        print 'Saving labels file: ', label_file_name
+
+        #Save feature vector to disk
+        with open(feature_file_name + '.' + reader_name + '.feature', 'w') as f:
+            pickle.dump(feat_vec, f)
+        #Save label file
+        with open(feature_file_name + '.dev' + reader_name + '.label', 'w') as f:
+            pickle.dump(gold_labels, f)
+
+        predicted_labels = pipeline.predict(feat_vec)
+        print metrics.classification_report(gold_labels, predicted_labels)
