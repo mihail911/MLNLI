@@ -2,7 +2,7 @@
 Project for Natural Language Understanding
 
 * Maintains all `.conf` files in the root project directory
-* To run the project, invoke "python test/run.py --conf_file [CONF FILENAME]"  
+* To run the project, invoke "python test/run.py --conf [CONF FILENAME]"  
 * Note, the format of the `.conf` files is as follows:
     * `model:` specifies the learning algorithm to use
         * choose from among: `log_reg`, `svm`
