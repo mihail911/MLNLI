@@ -110,8 +110,7 @@ def hypernym_features(t1, t2):
     hypernyms of sent1. Trying to capture patterns of the form
     'A dog is jumping.' entails 'An animal is being active.'
     Returns an indicator feature of form 'contains_hypernyms: True/False'
-
-    TODO: Fix missing simple entail inference such as dog -> dog
+	TODO: Change what this feature returns!
     """
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
@@ -124,7 +123,7 @@ def hypernym_features(t1, t2):
     return Counter({'contains_hypernyms:': len(synset_overlap) >= 1})
 
 def antonym_features(t1, t2):
-    """Use antonyms between sentences to recognize contradiction patterns."""
+    """Use antonyms between sentences to recognize contradiction patterns. TODO: Extract antonyms from nouns and other syntactic families as well!"""
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
     sent2_lemmas = extract_adj_lemmas(sent2)

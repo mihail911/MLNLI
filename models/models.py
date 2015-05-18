@@ -26,7 +26,7 @@ def build_log_regression_model(train_reader = sick_train_reader, feature_vectori
 
     """Builds (trains) and returns an instance of a logistic regression model along with necessary.
     Features is a list of feature names to be extracted from the data."""
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression(C=2.4))])
+    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
 
     feat_vec, labels = featurizer(sick_train_reader, features)
 
@@ -74,7 +74,7 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
-    parameters = {'clf__penalty':['l1','l2'], 'clf__C': np.arange(2.7,2.0, -0.1)} #'feature_selector__k': np.arange(300,400,100)}
+    parameters = {'clf__C': np.arange(2.7,1.0, -0.1)} #'feature_selector__k': np.arange(300,400,100)}
 
     print "Pipeline steps: ", [step for step, _ in pipeline.steps]
     print "Pipeline parameter grid: ", parameters

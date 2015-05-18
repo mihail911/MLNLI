@@ -12,13 +12,13 @@ from models.models import build_log_regression_model, evaluate_model, parameter_
 from argparse import ArgumentParser
 
 parser = ArgumentParser('description = provide arguments for running model pipeline')
-parser.add_argument('--conf_file', help = 'name of configuration file ')
+parser.add_argument('--conf', help = 'name of configuration file ')
 arguments = parser.parse_args()
 
 params = {}
 
 #Loads the parameters set in the conf file and saves in a global dict.
-with open(arguments.conf_file, 'r') as f:
+with open(arguments.conf, 'r') as f:
     model_line = f.readline().split(':')
     params[model_line[0].strip()] = model_line[1].strip()
 
