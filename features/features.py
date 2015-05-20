@@ -9,6 +9,7 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
 from collections import Counter
+from framenet.fn_tools import super_frames
 import itertools
 from util.utils import sick_train_reader, leaves
 
@@ -146,6 +147,21 @@ def frame_overlap(t1, t2, sf1, sf2):
     feat['overlap_frames'] = len(overlap)
     return feat
 
+def frame_entailment(t1, t2, sf1, sf2):
+    super_overlap = []
+    for f1 in sf1:
+        supframes = super_frames(f1)
+        for sup1 in supframes:
+            if sup1 in sf2:
+                super_overlap.append('entailedframe_' + sup1)
+                break
+
+    feat = Counter(super_overlap)
+    feat['first_frames'] = len(sf1)
+    feat['second_frames'] = len(sf2)
+    feat['entailed_frames'] = len(super_overlap)
+    return feat
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
@@ -153,7 +169,8 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
             'second_not_first' : synset_exclusive_second_features,
-            'frame_overlap' : frame_overlap} #Mapping from feature to method that extracts  given features from sentences
+            'frame_overlap' : frame_overlap,
+            'frame_entailment' : frame_entailment} #Mapping from feature to method that extracts  given features from sentences
 
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
