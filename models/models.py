@@ -115,7 +115,14 @@ def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
 
 def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = "", load_vec = None):
     """Evaluates the given model on the test data and outputs statistics."""
-    
+    if reader == sick_dev_reader:
+        reader_name = 'Dev'
+    else:
+        reader_name = 'Train'
+
+    dict_vec = pipeline.steps[0][1] #Extracts the dictVectorizer from the pipeline object (assumes vectorizer is first transform applied)
+    print reader_name + ' Feature Set Size: ', len(dict_vec.feature_names_)
+
     prettyColor = color.RED
     if reader == 'sick_dev_reader':
         reader = sick_dev_reader
