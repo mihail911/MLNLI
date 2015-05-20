@@ -73,9 +73,9 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
     Features is a list of feature names to be extracted from the data."""
 
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC())])
-    feat_vec, labels = load_vectors (feature_file_name) if load_vec else featurizer(train_reader, features)
+    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
     if not load_vec:
-        save_vectors (feat_vec, gold_labels, file_name)
+        save_vectors (feat_vec, labels, file_name)
 
     clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
