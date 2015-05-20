@@ -137,13 +137,23 @@ def antonym_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
+def frame_overlap(t1, t2, sf1, sf2):
+    overlap = ['frame_' + f1 for f1 in sf1 if f1 in sf2]
+    feat = Counter(overlap)
+    feat['first_frames'] = len(sf1)
+    feat['second_frames'] = len(sf2)
+    feat['overlap_frames'] = len(overlap)
+    return feat
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
             'hypernyms' : hypernym_features,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
-            'second_not_first' : synset_exclusive_second_features} #Mapping from feature to method that extracts  given features from sentences
+            'second_not_first' : synset_exclusive_second_features,
+            'frame_overlap' : frame_overlap} #Mapping from feature to method that extracts  given features from sentences
+
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
@@ -154,10 +164,13 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
     labels = []
     split_index = None
 
-    for label, t1, t2 in reader():
+    for label, t1, t2, sf1, sf2 in reader():
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
-            d = features_mapping[feat](t1, t2)
+            if feat.startswith('frame'):
+                d = features_mapping[feat](t1, t2, sf1, sf2)
+            else:
+                d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
 
         feats.append(feat_dict)

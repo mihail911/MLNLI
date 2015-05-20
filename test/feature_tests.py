@@ -1,7 +1,7 @@
 __author__ = 'guthriec'
 
 import features.features as features
-from util.utils import str2tree
+from util.utils import str2tree, sick_dev_reader
 from nltk.corpus import wordnet as wn
 
 class TestResult:
@@ -69,12 +69,23 @@ def test_antonyms():
         result.add_failure("Antonym failed to be detected")
     return result
 
+def test_frame_overlap():
+    result = TestResult('Frame overlap')
+    curr_dev_el = 0
+    for label, t1, t2, sf1, sf2 in sick_dev_reader():
+        print t1, t2, features.frame_overlap(t1, t2, sf1, sf2)
+        curr_dev_el += 1
+        if curr_dev_el == 1:
+            break
+    return result
+
 def run_feature_tests(print_results=True):
     results = []
     results.append(test_hypernyms())
     results.append(test_antonyms())
     results.append(test_synset_overlap())
     results.append(test_synset_exclusive())
+    results.append(test_frame_overlap())
     success = True
     for result in results:
         if print_results:
@@ -88,4 +99,4 @@ def run_feature_tests(print_results=True):
     return success
 
 if __name__ == "__main__":
-    run_feature_tests()
+    test_frame_overlap()
