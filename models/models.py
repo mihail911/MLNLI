@@ -72,7 +72,7 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
     """Builds (trains) and returns an instance of a SVM model along with necessary.
     Features is a list of feature names to be extracted from the data."""
 
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC())])
+    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC(kernel='linear'))])
     feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
     if not load_vec:
         save_vectors (feat_vec, labels, file_name)
@@ -83,7 +83,7 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
 def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of SVM model."""
 
-    parameters = {'clf__C': np.arange(.1, 3.1, .3), 'clf__penalty': ['l1', 'l2'], 'feature_selector__k': np.arange(300,400,100)}
+    parameters = {'clf__C': np.arange(.8, 2.1, .3), 'feature_selector__k': np.arange(300,400,200)}
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
 
