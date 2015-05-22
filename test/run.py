@@ -33,6 +33,7 @@ params['load_vectors'] = True if params['load_vectors'].lower() == 'true' else F
 
 print params
 
+print 'Configuration file used: ' + arguments.conf
 
 prettyPrint("===" * 16 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
 prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
