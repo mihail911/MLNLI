@@ -1,8 +1,16 @@
 __author__ = 'guthriec'
 
-import features.features as features
+
+import os, sys
+"""Add root directory path"""
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath((__file__))))
+sys.path.append(root_dir)
+os.chdir(root_dir)
+
+
 from util.utils import str2tree
 from nltk.corpus import wordnet as wn
+import features.features as features
 
 class TestResult:
     def __init__(self, test_name):
@@ -40,6 +48,30 @@ def test_hypernyms():
     if features.hypernym_features(table_sent1, hot_sent)['contains_hypernyms:']:
         result.add_failure("Hypernym false positive")
     return result
+
+def test_general_hyp():
+
+    table_sent1 = str2tree("I hate when the table is too short.")
+    table_sent2 = str2tree("What a cute table")
+    furniture_sent = str2tree("That furniture is ugly.")
+    hot_sent = str2tree("Of the hot soups, it is the best.")
+    dog_sent1 = "The dog is jumping on the bed."
+    dog_sent2 = "I look at the dog being active."
+
+    s1 = str2tree("they run and talk")
+    s2 = str2tree("he sprints and shouts")
+
+    print features.general_hypernym(s2, s1)
+
+    # result = TestResult("Hypernyms")
+    # if not features.hypernym_features(table_sent1, furniture_sent)['contains_hypernyms:']:
+    #     result.add_failure("Basic hypernym not captured")
+    # if not features.hypernym_features(table_sent1, table_sent2)['contains_hypernyms:']:
+    #     result.add_failure("Self-hypernym (i.e. dog -> dog) not captured")
+    # if features.hypernym_features(table_sent1, hot_sent)['contains_hypernyms:']:
+    #     result.add_failure("Hypernym false positive")
+    # return result
+
 
 def test_synset_overlap():
     way_sent1 = str2tree("There's no way I can do that")

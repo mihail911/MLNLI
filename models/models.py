@@ -54,11 +54,11 @@ def load_vectors (file_extension = None):
     return feat_vec, labels
 
 def build_log_regression_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, 
-                               feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
+                               feature_selector = SelectKBest(chi2, k = 300), file_name = None, load_vec = None):
 
     """Builds (trains) and returns an instance of a logistic regression model along with necessary.
     Features is a list of feature names to be extracted from the data."""
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression())])
+    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression(solver='lbfgs'))])
 
     feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
     if not load_vec:    
@@ -100,12 +100,12 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
-    parameters = {'clf__C': np.arange(2.7,1.0, -0.1)} #'feature_selector__k': np.arange(300,400,100)}
+    parameters = {'clf__C': np.arange(1.5 ,0.5, -0.1), 'feature_selector__k': np.arange(300, 600,100)}
 
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
 
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs=4)
+    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = -1)
     grid_search.fit(feat_vec, labels)
 
     prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
