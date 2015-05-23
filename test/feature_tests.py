@@ -1,8 +1,16 @@
 __author__ = 'guthriec'
 
-import features.features as features
+
+import os, sys
+"""Add root directory path"""
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath((__file__))))
+sys.path.append(root_dir)
+os.chdir(root_dir)
+
+
 from util.utils import str2tree
 from nltk.corpus import wordnet as wn
+import features.features as features
 
 class TestResult:
     def __init__(self, test_name):
@@ -40,6 +48,13 @@ def test_hypernyms():
     if features.hypernym_features(table_sent1, hot_sent)['contains_hypernyms:']:
         result.add_failure("Hypernym false positive")
     return result
+
+def test_general_hyp():
+    t1 = str2tree("dog (smart)")
+    t2 = str2tree("cat (dumb)")
+
+    features.general_hypernym(t1, t2)
+
 
 def test_synset_overlap():
     way_sent1 = str2tree("There's no way I can do that")

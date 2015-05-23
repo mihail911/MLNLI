@@ -26,6 +26,20 @@ def word_overlap_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
+def tree2sent(t1, t2):
+    return ' '.join(leaves(t1)), ' '.join(leaves(t2))
+
+
+
+def penn2wn(tag):
+    """ Given a Penn Treebank tag, returns the appropriate 
+        WordNet tag, if possible.  Otherwise returns ''. """
+
+    if tag[0] in 'JVNR':
+        ind = 'JVNR'.index(tag[0]) # Starts with (AD)J, V(ERB), N(OUN), (ADVE)R(B)
+        return 'avnr'[ind]
+    return ''
+
 def extract_nouns(sent):
     """Extracts nouns in a given sentence."""
     tokens = word_tokenize(sent)
@@ -46,6 +60,7 @@ def extract_noun_synsets(sent):
         synsets.extend(wn.synsets(noun, pos=wn.NOUN))
     return synsets
 
+
 def extract_nouns_and_synsets(sent):
     """Extracts pair of both nouns and synsets for those nouns in a given sent."""
     synsets = []
@@ -53,6 +68,17 @@ def extract_nouns_and_synsets(sent):
     for noun in all_nouns:
         synsets.extend(wn.synsets(noun, pos=wn.NOUN))
     return (all_nouns, synsets)
+
+def extract_synsets (sent):
+    ''' Extracts the synsets of all the words in the sentence with matching
+        POS tag.  '''
+    synsets = []
+    tagged = pos_tag(sent.split())
+    print tagged
+    for word, pos in tagged:
+        print word, pos, wn.NOUN
+        synsets.extend(wn.synsets(word, pos=penn2wn(pos)))
+    return synsets
 
 def noun_synset_dict(sent):
     synsets = {}
@@ -81,8 +107,7 @@ def extract_adj_antonyms(sent):
 
 def synset_overlap_features(t1, t2):
     """Returns counter for all mutual synsets between two sentences."""
-    sent1 = ' '.join(leaves(t1))
-    sent2 = ' '.join(leaves(t2))
+    sent1, sent2 = tree2sent(t1, t2)
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
     overlap_synsets = [str(syn) for syn in sent1_synsets if syn in sent2_synsets]
@@ -90,8 +115,7 @@ def synset_overlap_features(t1, t2):
 
 def synset_exclusive_first_features(t1, t2):
     """Returns counter for all nouns in first sentence with no possible synonyms in second"""
-    sent1 = ' '.join(leaves(t1))
-    sent2 = ' '.join(leaves(t2))
+    sent1, sent2 = tree2sent(t1, t2)
     sent1_synset_dict = noun_synset_dict(sent1)
     sent2_synsets = extract_noun_synsets(sent2)
     firstonly_nouns = [str(noun) for noun in sent1_synset_dict if not len(set(sent1_synset_dict[noun]) & set(sent2_synsets))]
@@ -99,14 +123,32 @@ def synset_exclusive_first_features(t1, t2):
 
 def synset_exclusive_second_features(t1, t2):
     """Returns counter for all nouns in second sentence with no possible synonyms in first"""
-    sent1 = ' '.join(leaves(t1))
-    sent2 = ' '.join(leaves(t2))
+    sent1, sent2 = tree2sent(t1, t2)
     sent1_synsets = extract_noun_synsets(sent1)
     sent2_synset_dict = noun_synset_dict(sent2)
     secondonly_nouns = [str(noun) for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
     return Counter(secondonly_nouns)
 
+def general_hypernym(t1, t2):   
+    ''' Calculates hypernyms of sentence 1 and sentence 2 using matching POS tags.  '''
+    count = Counter()
 
+    sent1, sent2 = tree2sent(t1, t2)
+    s1_leaves = leaves(t1)
+    syns = extract_synsets(sent2)
+    # TODO: Check if filtering synsets by starter word is effective.
+    # Get an effective set of synsets for sentence 1
+    hyp = [syn for syn in extract_synsets(sent1) if syn.name().partition['.'] in sent1]
+
+    for s2 in syns:
+        hypers = [ h for h in s2.closure(lambda s: s.hypernyms()) if h in s1_leaves]
+        if hypers:
+            word = s2.name().partition['.']
+            for h in hypers:
+                count["hyp ({0}, {1})".format(h, word)] += 1
+
+    print count
+ 
 def hypernym_features(t1, t2):
     """ Calculate hypernyms of sent1 and check if synsets of sent2 contained in
     hypernyms of sent1. Trying to capture patterns of the form
@@ -117,12 +159,22 @@ def hypernym_features(t1, t2):
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
     s1_nouns, s1_syns = extract_nouns_and_synsets(sent1)
-    s2_syns = extract_noun_synsets(sent2)
+
+    
+    s2_nouns, s2_syns  = extract_nouns_and_synsets(sent2)
     all_hyper_synsets = set(s1_syns) #Stores the hypernym synsets of the nouns in the first sentence
+    s1_len, s2_len = len(s1_nouns), len(s2_nouns)
+    # print s1_nouns
+    # print s2_nouns
     for syn in s1_syns:
         all_hyper_synsets.update(set([i for i in syn.closure(lambda s:s.hypernyms())]))
     synset_overlap = all_hyper_synsets & set(s2_syns) # Stores intersection of sent2 synsets and hypernyms of sent1
-    return Counter({'contains_hypernyms:': len(synset_overlap) >= 1})
+    
+    # Discretize into smaller buckets based on the number of nouns in each sentence,
+    # and the size of the synset overlap.
+    feature_string = 'hypernyms {0} {1} {2}'.format(s1_len, s2_len, len(synset_overlap))
+
+    return Counter({feature_string : 1})
 
 def antonym_features(t1, t2):
 
