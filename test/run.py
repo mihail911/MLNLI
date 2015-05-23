@@ -11,7 +11,7 @@ sys.path.append(root_dir)
 os.chdir(root_dir)
 
 import logging
-from models.models import build_log_regression_model, evaluate_model, parameter_tune_log_reg, save_vectors
+from models.models import build_log_regression_model, build_svm_model, evaluate_model, parameter_tune_log_reg, save_vectors, parameter_tune_svm
 from argparse import ArgumentParser
 from util.colors import color, prettyPrint
 
@@ -33,6 +33,7 @@ params['load_vectors'] = True if params['load_vectors'].lower() == 'true' else F
 
 print params
 
+print 'Configuration file used: ' + arguments.conf
 
 prettyPrint("===" * 16 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
 prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
@@ -40,12 +41,17 @@ prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
 # Calibrate params 
 
 start_train = time.time()
+
 # Build model by specifying vectorizer, feature selector, features
-
-model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'] + ".train", 
+if params['model'] == 'log_reg':
+	model, feat_vec, labels = build_log_regression_model(features = params['features'], file_name = params['feature_file'] + ".train",
 													 load_vec = params['load_vectors'])
+	best_model = parameter_tune_log_reg(model, feat_vec, labels)
+elif params['model'] == 'svm':
+	model, feat_vec, labels = build_svm_model(features = params['features'], file_name = params['feature_file'] + ".train",
+													 load_vec = params['load_vectors'])
+	best_model = parameter_tune_svm(model, feat_vec, labels)
 
-best_model = parameter_tune_log_reg(model, feat_vec, labels)
 
 end_train = time.time() 
 prettyPrint ("Finished training.  Took {0:.2f} seconds".format(end_train - start_train), color.RED)
