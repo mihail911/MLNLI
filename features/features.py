@@ -106,6 +106,25 @@ def synset_exclusive_second_features(t1, t2):
     secondonly_nouns = [str(noun) for noun in sent2_synset_dict if not len(set(sent2_synset_dict[noun]) & set(sent1_synsets))]
     return Counter(secondonly_nouns)
 
+def subphrase_generator(tree):
+    ''' Given a tree, returns all of the subphrases '''
+    phrases = [tree]
+    def extract_subphrases(subtree):
+        if isinstance(subtree, tuple):
+            for sp in subtree:
+                phrases.append(sp)
+                extract_subphrases(sp)
+
+    extract_subphrases(tree)
+    print "Generated subphrases for {0}".format(tree)
+    return phrases
+
+# When a phrase in t2 contains a phrase in t1, count it.
+# TODO: Test this, and compare it against summing for v IN p2.
+def phrase_share_feature(t1, t2):
+    p1, p2 = subphrase_generator(t1), subphrase_generator(t2)
+    shared = [str((v, w)) for v in p1 for w in p2 if v == w]
+    return Counter(shared)
 
 def hypernym_features(t1, t2):
     """ Calculate hypernyms of sent1 and check if synsets of sent2 contained in

@@ -105,7 +105,7 @@ def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
 
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
+    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs=4)
     grid_search.fit(feat_vec, labels)
 
     prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
