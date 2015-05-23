@@ -60,7 +60,6 @@ def extract_noun_synsets(sent):
         synsets.extend(wn.synsets(noun, pos=wn.NOUN))
     return synsets
 
-
 def extract_nouns_and_synsets(sent):
     """Extracts pair of both nouns and synsets for those nouns in a given sent."""
     synsets = []
@@ -74,9 +73,8 @@ def extract_synsets (sent):
         POS tag.  '''
     synsets = []
     tagged = pos_tag(sent.split())
-    print tagged
+   # print tagged
     for word, pos in tagged:
-        print word, pos, wn.NOUN
         synsets.extend(wn.synsets(word, pos=penn2wn(pos)))
     return synsets
 
@@ -130,24 +128,27 @@ def synset_exclusive_second_features(t1, t2):
     return Counter(secondonly_nouns)
 
 def general_hypernym(t1, t2):   
-    ''' Calculates hypernyms of sentence 1 and sentence 2 using matching POS tags.  '''
-    count = Counter()
-
-    sent1, sent2 = tree2sent(t1, t2)
-    s1_leaves = leaves(t1)
+    ''' Calculates hypernyms of sentence 1 and sentence 2 using matching POS tags. 
+        Also permits self-hypernyms '''
+    s1_leaves, s2_leaves = leaves(t1), leaves(t2)
+    sent1, sent2 = ' '.join(s1_leaves), ' '.join(s2_leaves)
+    
+    hsyns = extract_synsets(sent1)
     syns = extract_synsets(sent2)
-    # TODO: Check if filtering synsets by starter word is effective.
-    # Get an effective set of synsets for sentence 1
-    hyp = [syn for syn in extract_synsets(sent1) if syn.name().partition['.'] in sent1]
 
-    for s2 in syns:
-        hypers = [ h for h in s2.closure(lambda s: s.hypernyms()) if h in s1_leaves]
-        if hypers:
-            word = s2.name().partition['.']
-            for h in hypers:
-                count["hyp ({0}, {1})".format(h, word)] += 1
+    all_hyper_synsets = set(extract_synsets(sent1))
 
-    print count
+    # Counts the number of synsets of a word in the sentence with the 
+    # same POS tag as parsed 
+    s1_len = len(set(s for s in hsyns if s.name().partition('.')[0] in sent1))
+    s2_len = len(set(s for s in syns if s.name().partition('.')[0] in sent2))
+                            
+    for h in hsyns:
+        all_hyper_synsets.update(set([i for i in h.closure(lambda s:s.hypernyms())]))
+    overlap = all_hyper_synsets & set(syns)
+
+    feature_string = "hypernyms {0} {1} {2}".format(s1_len, s2_len, len(overlap))
+    return Counter({feature_string : 1})
  
 def hypernym_features(t1, t2):
     """ Calculate hypernyms of sent1 and check if synsets of sent2 contained in
@@ -164,8 +165,7 @@ def hypernym_features(t1, t2):
     s2_nouns, s2_syns  = extract_nouns_and_synsets(sent2)
     all_hyper_synsets = set(s1_syns) #Stores the hypernym synsets of the nouns in the first sentence
     s1_len, s2_len = len(s1_nouns), len(s2_nouns)
-    # print s1_nouns
-    # print s2_nouns
+
     for syn in s1_syns:
         all_hyper_synsets.update(set([i for i in syn.closure(lambda s:s.hypernyms())]))
     synset_overlap = all_hyper_synsets & set(s2_syns) # Stores intersection of sent2 synsets and hypernyms of sent1
@@ -190,13 +190,18 @@ def antonym_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
+def word_cross_product_nv(t1, t2):
+    nv1 = [w[0] for w in pos_tag(leaves(t1)) if penn2wn(w[1]) in 'nv']
+    nv2 = [w[0] for w in pos_tag(leaves(t2)) if penn2wn(w[1]) in 'nv']
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
             'hypernyms' : hypernym_features,
+            'new_hyp' : general_hypernym,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
-            'second_not_first' : synset_exclusive_second_features} #Mapping from feature to method that extracts  given features from sentences
+            'second_not_first' : synset_exclusive_second_features} # Mapping from feature to method that extracts  given features from sentences
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
