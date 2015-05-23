@@ -33,7 +33,7 @@ def leaves(t):
             words += leaves(x)
     return words
 
-data_dir = '../nli-data/'
+data_dir = 'nli-data/'
 
 def sick_reader(src_filename, semafor_filename):
     frames = frametuples(semafor_filename)
@@ -46,10 +46,10 @@ def sick_reader(src_filename, semafor_filename):
 
 #Readers for processing SICK datasets
 def sick_train_reader():
-    return sick_reader(src_filename=data_dir+"SICK_train_parsed.txt", semafor_filename=data_dir+"semafor_train.out")
+    return sick_reader(src_filename=data_dir+"SICK_train_parsed.txt", semafor_filename=data_dir+"semafor_train.xml")
 
 def sick_dev_reader():
-    return sick_reader(src_filename=data_dir+"SICK_dev_parsed.txt", semafor_filename=data_dir+"semafor_dev.out")
+    return sick_reader(src_filename=data_dir+"SICK_dev_parsed.txt", semafor_filename=data_dir+"semafor_dev.xml")
 
 def sick_test_reader():
-    return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt", semafor_filename=data_dir+"semafor_test.out")
+    return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt", semafor_filename=data_dir+"semafor_test.xml")

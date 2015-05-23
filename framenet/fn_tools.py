@@ -1,5 +1,6 @@
 __author__ = 'guthriec'
 
+from framenet.frame import Frame
 import os
 import sys
 import xml.etree.ElementTree as ET
@@ -9,8 +10,8 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 print root_dir
 
-index_tree = ET.parse('../framenet/frameIndex.xml')
-relation_tree = ET.parse('../framenet/frRelation.xml')
+index_tree = ET.parse('framenet/frameIndex.xml')
+relation_tree = ET.parse('framenet/frRelation.xml')
 
 name_id_dict = {}
 index_root = index_tree.getroot()
@@ -37,5 +38,5 @@ for name in name_id_dict:
 def name_to_id(frame_name):
     return name_id_dict[frame_name]
 
-def super_frames(frame_name):
-    return super_frame_dict[frame_name]
+def super_frame_names(frame):
+    return super_frame_dict[frame.name]

@@ -73,7 +73,7 @@ def test_frame_overlap():
     result = TestResult('Frame overlap')
     curr_dev_el = 0
     for label, t1, t2, sf1, sf2 in sick_dev_reader():
-        print t1, t2, features.frame_overlap(t1, t2, sf1, sf2)
+        #print t1, t2, features.frame_overlap(t1, t2, sf1, sf2)
         curr_dev_el += 1
         if curr_dev_el == 5:
             break
@@ -82,10 +82,16 @@ def test_frame_overlap():
 def test_frame_entailment():
     result = TestResult('Frame entailment')
     curr_dev_el = 0
+    diff = 0
     for label, t1, t2, sf1, sf2 in sick_dev_reader():
-        print t1, t2, features.frame_entailment(t1, t2, sf1, sf2)
+        plain_overlap = features.frame_overlap(t1, t2, sf1, sf2)
+        entailment = features.frame_entailment(t1, t2, sf1, sf2)
+        print 'blah'
+        if not plain_overlap['overlap_frames'] == entailment['entailed_frames']:
+            print t1, t2, entailment
+            diff += 1
         curr_dev_el += 1
-        if curr_dev_el == 5:
+        if diff == 5:
             break
     return result
 
@@ -110,4 +116,4 @@ def run_feature_tests(print_results=True):
     return success
 
 if __name__ == "__main__":
-    run_feature_tests()
+    test_frame_entailment()

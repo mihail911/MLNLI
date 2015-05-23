@@ -9,7 +9,8 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
 from collections import Counter
-from framenet.fn_tools import super_frames
+from framenet.fn_tools import super_frame_names
+from framenet import frame
 import itertools
 from util.utils import sick_train_reader, leaves
 
@@ -139,20 +140,23 @@ def antonym_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
-def frame_overlap(t1, t2, sf1, sf2):
-    overlap = ['frame_' + f1 for f1 in sf1 if f1 in sf2]
+def frame_overlap_features(t1, t2, sf1, sf2):
+    frame_names1 = [f1.name for f1 in sf1]
+    frame_names2 = [f2.name for f2 in sf2]
+    overlap = ['frame_' + fn1 for fn1 in frame_names1 if fn1 in frame_names2]
     feat = Counter(overlap)
     feat['first_frames'] = len(sf1)
     feat['second_frames'] = len(sf2)
     feat['overlap_frames'] = len(overlap)
     return feat
 
-def frame_entailment(t1, t2, sf1, sf2):
+def frame_entailment_features(t1, t2, sf1, sf2):
     super_overlap = []
+    frame_names2 = [f2.name for f2 in sf2]
     for f1 in sf1:
-        supframes = super_frames(f1)
+        supframes = super_frame_names(f1)
         for sup1 in supframes:
-            if sup1 in sf2:
+            if sup1 in frame_names2:
                 super_overlap.append('entailedframe_' + sup1)
                 break
 
@@ -162,6 +166,30 @@ def frame_entailment(t1, t2, sf1, sf2):
     feat['entailed_frames'] = len(super_overlap)
     return feat
 
+def frame_similarity_features(t1, t2, sf1, sf2):
+    overlap = [(f1, f2) for f1 in sf1 for f2 in sf2 if f1.name == f2.name]
+    feat = {}
+    total_sim = 0.0
+    worst_sim = 1.0
+    for f1, f2 in overlap:
+        sim = frame.frame_similarity(f1, f2)
+        total_sim += sim
+        if sim < worst_sim:
+            worst_sim = sim
+        feat['frame_similarity_' + f1.name] = sim
+    if len(overlap):
+        feat['average_frame_similarity'] = total_sim/len(overlap)
+        feat['worst_frame_similarity'] = worst_sim
+    return feat
+
+def negation_features(t1, t2):
+    feat = {}
+    if ('no' in leaves(t2) and 'no' not in leaves(t1)) or ('no' in leaves(t1) and 'no' not in leaves(t2)):
+        feat['no_negation'] = 1.0
+    if ('not' in leaves(t2) and 'not' not in leaves(t1)) or ('not' in leaves(t1) and 'not' not in leaves(t2)):
+        feat['not_negation'] = 1.0
+    return feat
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
@@ -169,8 +197,10 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
             'second_not_first' : synset_exclusive_second_features,
-            'frame_overlap' : frame_overlap,
-            'frame_entailment' : frame_entailment} #Mapping from feature to method that extracts  given features from sentences
+            'frame_overlap' : frame_overlap_features,
+            'frame_entailment' : frame_entailment_features,
+            'frame_similarity' : frame_similarity_features,
+            'negation' : negation_features} #Mapping from feature to method that extracts  given features from sentences
 
 
 def featurizer(reader=sick_train_reader, features_funcs=None):

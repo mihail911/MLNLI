@@ -1,5 +1,6 @@
 __author__ = 'guthriec'
 
+from framenet.frame import Frame
 import xml.etree.ElementTree as ET
 
 def frametuples(filename):
@@ -12,8 +13,13 @@ def frametuples(filename):
         if not s_id == next_s_id:
             raise RuntimeError('sentences out of order')
         next_s_id += 1
-        frames = sentence.iter('annotationSet')
-        sentences.append([frame.get('frameName') for frame in frames])
+        annotation_sets = sentence.iter('annotationSet')
+        text = sentence.find('text').text
+        frame_list = []
+        for annotation_set in annotation_sets:
+            full_frame = Frame(text, annotation_set)
+            frame_list.append(full_frame)
+        sentences.append(frame_list)
     tuples = []
     for i in range(0, len(sentences)-1, 2):
         tuples.append((sentences[i], sentences[i+1]))
