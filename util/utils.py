@@ -7,6 +7,8 @@ import sys
 import csv
 import re
 
+from semafor.process_semafor import frametuples
+
 """Add root directory path"""
 root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
@@ -33,18 +35,21 @@ def leaves(t):
 
 data_dir = 'nli-data/'
 
-def sick_reader(src_filename):
+def sick_reader(src_filename, semafor_filename):
+    frames = frametuples(semafor_filename)
+    curr_frame = 0
     for example in csv.reader(file(src_filename), delimiter="\t"):
         label, t1, t2 = example[:3]
         if not label.startswith('%'): # Some files use leading % for comments.
-            yield (label, str2tree(t1), str2tree(t2))
+            yield (label, str2tree(t1), str2tree(t2), frames[curr_frame][0], frames[curr_frame][1])
+            curr_frame += 1
 
 #Readers for processing SICK datasets
 def sick_train_reader():
-    return sick_reader(src_filename=data_dir+"SICK_train_parsed.txt")
+    return sick_reader(src_filename=data_dir+"SICK_train_parsed.txt", semafor_filename=data_dir+"semafor_train.xml")
 
 def sick_dev_reader():
-    return sick_reader(src_filename=data_dir+"SICK_dev_parsed.txt")
+    return sick_reader(src_filename=data_dir+"SICK_dev_parsed.txt", semafor_filename=data_dir+"semafor_dev.xml")
 
 def sick_test_reader():
-    return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt")
+    return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt", semafor_filename=data_dir+"semafor_test.xml")

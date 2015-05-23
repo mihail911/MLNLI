@@ -9,6 +9,8 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
 from collections import Counter
+from framenet.fn_tools import super_frame_names
+from framenet import frame
 import itertools
 from util.utils import sick_train_reader, leaves
 
@@ -210,9 +212,61 @@ def antonym_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
+
 def word_cross_product_nv(t1, t2):
     nv1 = [w[0] for w in pos_tag(leaves(t1)) if penn2wn(w[1]) in 'nv']
     nv2 = [w[0] for w in pos_tag(leaves(t2)) if penn2wn(w[1]) in 'nv']
+
+def frame_overlap_features(t1, t2, sf1, sf2):
+    frame_names1 = [f1.name for f1 in sf1]
+    frame_names2 = [f2.name for f2 in sf2]
+    overlap = ['frame_' + fn1 for fn1 in frame_names1 if fn1 in frame_names2]
+    feat = Counter(overlap)
+    feat['first_frames'] = len(sf1)
+    feat['second_frames'] = len(sf2)
+    feat['overlap_frames'] = len(overlap)
+    return feat
+
+def frame_entailment_features(t1, t2, sf1, sf2):
+    super_overlap = []
+    frame_names2 = [f2.name for f2 in sf2]
+    for f1 in sf1:
+        supframes = super_frame_names(f1)
+        for sup1 in supframes:
+            if sup1 in frame_names2:
+                super_overlap.append('entailedframe_' + sup1)
+                break
+
+    feat = Counter(super_overlap)
+    feat['first_frames'] = len(sf1)
+    feat['second_frames'] = len(sf2)
+    feat['entailed_frames'] = len(super_overlap)
+    return feat
+
+def frame_similarity_features(t1, t2, sf1, sf2):
+    overlap = [(f1, f2) for f1 in sf1 for f2 in sf2 if f1.name == f2.name]
+    feat = {}
+    total_sim = 0.0
+    worst_sim = 1.0
+    for f1, f2 in overlap:
+        sim = frame.frame_similarity(f1, f2)
+        total_sim += sim
+        if sim < worst_sim:
+            worst_sim = sim
+        feat['frame_similarity_' + f1.name] = sim
+    if len(overlap):
+        feat['average_frame_similarity'] = total_sim/len(overlap)
+        feat['worst_frame_similarity'] = worst_sim
+    return feat
+
+def negation_features(t1, t2):
+    feat = {}
+    s1, s2 = leaves(t1), leaves(t2)
+    for word in ['no', 'not', 'none', "n't", 'nobody']:
+        if (word in s1 and word not in s2) or (word in s2 and word not in s1):
+            word['{0}_negation'.format(word)] = 1.0
+
+    return feat
 
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
@@ -221,7 +275,12 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'new_hyp' : general_hypernym,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
-            'second_not_first' : synset_exclusive_second_features} # Mapping from feature to method that extracts  given features from sentences
+            'second_not_first' : synset_exclusive_second_features,
+            'frame_overlap' : frame_overlap_features,
+            'frame_entailment' : frame_entailment_features,
+            'frame_similarity' : frame_similarity_features,
+            'negation' : negation_features} #Mapping from feature to method that extracts  given features from sentences
+
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
@@ -232,10 +291,13 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
     labels = []
     split_index = None
 
-    for label, t1, t2 in reader():
+    for label, t1, t2, sf1, sf2 in reader():
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
-            d = features_mapping[feat](t1, t2)
+            if feat.startswith('frame'):
+                d = features_mapping[feat](t1, t2, sf1, sf2)
+            else:
+                d = features_mapping[feat](t1, t2)
             feat_dict.update(d)
 
         feats.append(feat_dict)
