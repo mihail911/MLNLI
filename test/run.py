@@ -11,7 +11,7 @@ sys.path.append(root_dir)
 os.chdir(root_dir)
 
 import logging
-from models.models import build_log_regression_model, build_svm_model, evaluate_model, parameter_tune_log_reg, save_vectors, parameter_tune_svm
+from models.models import *
 from argparse import ArgumentParser
 from util.colors import color, prettyPrint
 
@@ -35,7 +35,7 @@ print params
 
 print 'Configuration file used: ' + arguments.conf
 
-prettyPrint("===" * 16 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
+prettyPrint("-" * 80 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
 prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
 
 # Calibrate params 
@@ -51,7 +51,10 @@ elif params['model'] == 'svm':
 	model, feat_vec, labels = build_svm_model(features = params['features'], file_name = params['feature_file'] + ".train",
 													 load_vec = params['load_vectors'])
 	best_model = parameter_tune_svm(model, feat_vec, labels)
-
+elif params['model'] == 'nb' or params['model'] == 'naive_bayes':
+	model, feat_vec, labels = build_naive_bayes_model(features = params['features'], file_name = params['feature_file'] + ".train",
+													 load_vec = params['load_vectors'])
+	best_model = parameter_tune_nb(model, feat_vec, labels)
 
 end_train = time.time() 
 prettyPrint ("Finished training.  Took {0:.2f} seconds".format(end_train - start_train), color.RED)
@@ -61,8 +64,8 @@ prettyPrint ("Finished training.  Took {0:.2f} seconds".format(end_train - start
 evaluate_model(best_model, reader = 'sick_train_reader', features = params['features'], file_name = params['feature_file'], 
 			   load_vec = 'true')
 
-prettyPrint ('===' * 16, color.YELLOW)
+prettyPrint ('-' * 80, color.YELLOW)
 evaluate_model(best_model, features = params['features'], file_name = params['feature_file'] + ".dev", load_vec = params['load_vectors'])
 
-prettyPrint("Finished training and evaluating model\n" + "===" * 16, color.YELLOW)
+prettyPrint("Finished training and evaluating model\n" + "-" * 80, color.YELLOW)
 
