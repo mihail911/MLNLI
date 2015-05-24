@@ -100,7 +100,7 @@ def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
 def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
     """Does hyperparameter tuning of logistic regression model."""
 
-    parameters = {'clf__C': np.arange(1.5 ,0.5, -0.1), 'feature_selector__k': np.arange(300, 600,100)}
+    parameters = {'clf__C': np.arange(2.0 ,0.5, -0.2), 'feature_selector__k': np.arange(1500, 3000, 300)}
 
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)

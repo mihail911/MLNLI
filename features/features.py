@@ -264,7 +264,7 @@ def negation_features(t1, t2):
     s1, s2 = leaves(t1), leaves(t2)
     for word in ['no', 'not', 'none', "n't", 'nobody']:
         if (word in s1 and word not in s2) or (word in s2 and word not in s1):
-            word['{0}_negation'.format(word)] = 1.0
+            feat['{0}_negation'.format(word)] = 1.0
 
     return feat
 
