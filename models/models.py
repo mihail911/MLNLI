@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 __author__ = 'mihaileric'
 
 import os
@@ -16,7 +18,7 @@ from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.naive-bayes import MultinomialNB as MultNB
+from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
 from util.utils import sick_train_reader, sick_dev_reader
 from util.colors import color, prettyPrint
@@ -55,7 +57,7 @@ def load_vectors (file_extension = None):
     return feat_vec, labels
 
 def build_naive_bayes_model (train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = False), 
-                             features = None, feature_selector = SelectKBest(chi2, k = 1000), file_name = None, load_vec = None):
+                             features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
     """Builds (trains) and returns an instance of a multinomial naive bayes model. """
     
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
@@ -99,14 +101,14 @@ def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictV
 
 def parameter_tune_nb(pipeline = None, feat_vec = None, labels = None):
 
-    """Does hyperparameter tuning of the Naïve Bayes model.  """
+    """Does hyperparameter tuning of the Naive Bayes model.  """
 
-    parameters = {}
+    parameters = {'clf__alpha': [1.0, 1.25, 1.5, 1.7, 2.0, 2.3, 2.6, 3.0], 'feature_selector__alpha' : [0.01, 0.02, 0.03, 0.04, 0.05]}
 
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
                                                                             parameters), color.GREEN)
 
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = -1)
+    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = 4)
     grid_search.fit(feat_vec, labels)
 
     prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
