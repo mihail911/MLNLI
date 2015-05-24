@@ -10,6 +10,7 @@ sys.path.append(root_dir)
 
 from collections import Counter
 import itertools
+import nltk
 from util.utils import sick_train_reader, leaves
 
 from nltk import word_tokenize, pos_tag
@@ -116,7 +117,6 @@ def subphrase_generator(tree):
                 extract_subphrases(sp)
 
     extract_subphrases(tree)
-    print "Generated subphrases for {0}".format(tree)
     return phrases
 
 # When a phrase in t2 contains a phrase in t1, count it.
@@ -157,13 +157,52 @@ def antonym_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
+
+grammar = """ \
+            NN-PHRASE: {<DT.*> <NN> <RB>}
+                      {<DT.*> <NN>}
+                      {<DT.*> <JJ> <NN>}
+          """
+cp = nltk.RegexpParser(grammar)
+
+def noun_phrase_modifier_features(t1, t2):
+    """Extracts noun phrases within sentences and identifies
+    whether a noun phrase in second sentence is subsumed by first."""
+    feat = []
+    sent1 = leaves(t1)
+    sent2 = leaves(t2)
+
+    tree1 = cp.parse(nltk.pos_tag(sent1))
+    tree2 = cp.parse(nltk.pos_tag(sent2))
+
+    #List of noun phrases with tokens and POS tags
+    np1 = [subtree1.leaves() for subtree1 in tree1.subtrees() if subtree1.label() == 'NN-PHRASE']
+    np2 = [subtree2.leaves() for subtree2 in tree2.subtrees() if subtree2.label() == 'NN-PHRASE']
+
+    np1_token_mapping = {" ".join([pair[0] for pair in np]): np for np in np1}
+    np2_token_mapping = {" ".join([pair[0] for pair in np]): np for np in np2}
+
+    for tok1 in np1_token_mapping.keys():
+        for tok2 in np2_token_mapping.keys():
+            if set(tok2).issubset(set(tok1)): #May also want to guarantee strict set containment
+                #Do something
+                sent1_entities = np1_token_mapping[tok1]
+                sent2_entities = np2_token_mapping[tok2]
+                np1_pos = [tok[1] for tok in sent1_entities]
+                np2_pos = [tok[1] for tok in sent2_entities]
+                feature_key = ",".join(np1_pos) + ":" + ",".join(np2_pos)
+                feat += [feature_key]
+
+    return Counter(feat)
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
             'hypernyms' : hypernym_features,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
-            'second_not_first' : synset_exclusive_second_features} #Mapping from feature to method that extracts  given features from sentences
+            'second_not_first' : synset_exclusive_second_features,
+            'noun_phrase_modifier' : noun_phrase_modifier_features} #Mapping from feature to method that extracts  given features from sentences
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
