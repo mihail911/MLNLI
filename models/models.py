@@ -25,6 +25,18 @@ from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
+_models = {"log_reg" : LogisticRegression(solver = 'lbfgs'), 
+           "svm" : SVC(kernel='linear'),
+           "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True)
+           }
+
+_param_grid = {"log_reg" : {'clf__C': np.arange(2.0 ,0.5, -0.5)}, #'feature_selector__k': np.arange(1500, 3000, 300)}, 
+
+               "svm" : {'clf__C': np.arange(.8, 2.1, .3), 'feature_selector__k': np.arange(300,400,200)},
+
+               "naive_bayes" : {} # {'clf__alpha': [1.0, 1.25, 1.5, 1.7, 2.0], 
+                                  # 'feature_selector__alpha' : [0.03, 0.04, 0.05]}
+               }
 
 def save_vectors (feat_vec = None, labels = None, file_extension = None):
     """ Saves the feature vectors and classification labels under the given file extension.  """
@@ -56,12 +68,14 @@ def load_vectors (file_extension = None):
     prettyPrint ("Done loading feature vectors.", color.CYAN)
     return feat_vec, labels
 
-def build_naive_bayes_model (train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = False), 
+
+def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = False), 
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
-    """Builds (trains) and returns an instance of a multinomial naive bayes model. """
-    
+    ''' Builds the model of choice. ''' 
+    global _models
+
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
-                        ('clf', MultNB(alpha = 1.0, fit_prior = True))])
+                        ('clf', _models[clf])])
 
     feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
     if not load_vec:    
@@ -70,82 +84,16 @@ def build_naive_bayes_model (train_reader = sick_train_reader, feature_vectorize
     clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
 
+def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels = None, grid = []):
+    ''' Performs parameter tuning for a generalized pipeline model '''
 
-
-def build_log_regression_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, 
-                               feature_selector = SelectKBest(chi2, k = 300), file_name = None, load_vec = None):
-
-    """Builds (trains) and returns an instance of a logistic regression model along with necessary.
-    Features is a list of feature names to be extracted from the data."""
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', LogisticRegression(solver='lbfgs'))])
-
-    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
-    if not load_vec:    
-        save_vectors(feat_vec, labels, file_extension = file_name)
-
-    clf_pipe.fit(feat_vec, labels)
-    return clf_pipe, feat_vec, labels
-
-def build_svm_model(train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse=False), features = None, 
-                    feature_selector = SelectKBest(chi2, k=300), file_name = None, load_vec = None):
-    """Builds (trains) and returns an instance of a SVM model along with necessary.
-    Features is a list of feature names to be extracted from the data."""
-
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), ('clf', SVC(kernel='linear'))])
-    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
-    if not load_vec:
-        save_vectors (feat_vec, labels, file_name)
-
-    clf_pipe.fit(feat_vec, labels)
-    return clf_pipe, feat_vec, labels
-
-def parameter_tune_nb(pipeline = None, feat_vec = None, labels = None):
-
-    """Does hyperparameter tuning of the Naive Bayes model.  """
-
-    parameters = {'clf__alpha': [1.0, 1.25, 1.5, 1.7, 2.0, 2.3, 2.6, 3.0], 'feature_selector__alpha' : [0.01, 0.02, 0.03, 0.04, 0.05]}
-
-    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
-                                                                            parameters), color.GREEN)
-
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = 4)
-    grid_search.fit(feat_vec, labels)
-
-    prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
-                                                              grid_search.best_params_) , color.RED)
-
-    return grid_search.best_estimator_
-
-def parameter_tune_svm(pipeline = None, feat_vec = None, labels = None):
-    """Does hyperparameter tuning of SVM model."""
-
-    parameters = {'clf__C': np.arange(.8, 2.1, .3), 'feature_selector__k': np.arange(300,400,200)}
-    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
-                                                                            parameters), color.GREEN)
-
-    print "Pipeline steps: ", [step for step, _ in pipeline.steps]
-    print "Pipeline parameter grid: ", parameters
-
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
-    grid_search.fit(feat_vec, labels)
-
-    prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
-                                                              grid_search.best_params_) , color.RED)
-    return grid_search.best_estimator_
-
-
-
-def parameter_tune_log_reg(pipeline = None, feat_vec = None, labels = None):
-    """Does hyperparameter tuning of logistic regression model."""
-
-    parameters = {'clf__C': np.arange(2.0 ,0.5, -0.2), 'feature_selector__k': np.arange(1500, 3000, 300)}
-
-    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([step for step, _ in pipeline.steps],
-                                                                            parameters), color.GREEN)
+    parameters = grid if grid else _param_grid[model]
+    prettyPrint("Tune on grid parameters: {0}".format(parameters), color.GREEN)
+    prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([s1 for s1, _ in pipeline.steps],
+                                                                        parameters), color.GREEN)
 
     grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = -1)
     grid_search.fit(feat_vec, labels)
-
     prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
                                                               grid_search.best_params_) , color.RED)
 
