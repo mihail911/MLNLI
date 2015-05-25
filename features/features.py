@@ -11,14 +11,24 @@ sys.path.append(root_dir)
 from collections import Counter
 import itertools
 import nltk
+import csv
 from util.utils import sick_train_reader, leaves
+import numpy as np
 
 from nltk import word_tokenize, pos_tag
 from nltk.corpus import wordnet as wn
 from nltk.stem import WordNetLemmatizer
 from util.colors import color, prettyPrint
+from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
+
+GLOVE_MAT, GLOVE_VOCAB, _ = build('../../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+
+def glvvec(w):
+    """Return the GloVe vector for w."""
+    i = GLOVE_VOCAB.index(w)
+    return GLOVE_MAT[i]
 
 def word_overlap_features(t1, t2):
     overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
@@ -165,10 +175,9 @@ grammar = """ \
           """
 cp = nltk.RegexpParser(grammar)
 
-def noun_phrase_modifier_features(t1, t2):
-    """Extracts noun phrases within sentences and identifies
-    whether a noun phrase in second sentence is subsumed by first."""
-    feat = []
+def get_noun_phrase_labeled(t1,t2):
+    """Gets noun phrases for given trees as lists with
+    labeled POS tags."""
     sent1 = leaves(t1)
     sent2 = leaves(t2)
 
@@ -179,13 +188,33 @@ def noun_phrase_modifier_features(t1, t2):
     np1 = [subtree1.leaves() for subtree1 in tree1.subtrees() if subtree1.label() == 'NN-PHRASE']
     np2 = [subtree2.leaves() for subtree2 in tree2.subtrees() if subtree2.label() == 'NN-PHRASE']
 
-    np1_token_mapping = {" ".join([pair[0] for pair in np]): np for np in np1}
-    np2_token_mapping = {" ".join([pair[0] for pair in np]): np for np in np2}
+    return np1, np2
+
+def get_noun_phrase_words(nps_labeled):
+    """Gets the words of a noun phrase."""
+    all_np_words = []
+    for np in nps_labeled:
+        all_np_words += [" ".join([pair[0].lower() for pair in np])]
+    return all_np_words
+
+def get_noun_phrase_mapping(np1, np2):
+    """Gets noun phrase mapping from noun phrase text to labeled list."""
+    np1_token_mapping = {" ".join([pair[0].lower() for pair in np]): np for np in np1}
+    np2_token_mapping = {" ".join([pair[0].lower() for pair in np]): np for np in np2}
+
+    return np1_token_mapping, np2_token_mapping
+
+def noun_phrase_modifier_features(t1, t2):
+    """Extracts noun phrases within sentences and identifies
+    whether a noun phrase in second sentence is subsumed by first."""
+    feat = []
+    np1, np2 = get_noun_phrase_labeled(t1, t2)
+
+    np1_token_mapping, np2_token_mapping = get_noun_phrase_mapping(np1, np2)
 
     for tok1 in np1_token_mapping.keys():
         for tok2 in np2_token_mapping.keys():
-            if set(tok2).issubset(set(tok1)): #May also want to guarantee strict set containment
-                #Do something
+            if set(tok2).issubset(set(tok1)):
                 sent1_entities = np1_token_mapping[tok1]
                 sent2_entities = np2_token_mapping[tok2]
                 np1_pos = [tok[1] for tok in sent1_entities]
@@ -195,6 +224,39 @@ def noun_phrase_modifier_features(t1, t2):
 
     return Counter(feat)
 
+def get_noun_phrase_vector(noun_phrase):
+    """Generate an aggregate distributed word vector
+    for a given noun phrase."""
+    all_word_vecs = [glvvec(w) for w in noun_phrase if w in GLOVE_VOCAB] #How often are the words not in glove vocab?
+    return np.sum(all_word_vecs, axis=0)
+
+def noun_phrase_word_vec_features(t1, t2):
+    """Produces features for the similarity between
+    pairwise noun phrase word vectors across the two sentences."""
+    feat = {}
+    np1, np2 = get_noun_phrase_labeled(t1, t2)
+
+    np1_token_mapping, np2_token_mapping = get_noun_phrase_mapping(np1, np2)
+
+    np1_words = get_noun_phrase_words(np1)
+    np2_words = get_noun_phrase_words(np2)
+
+    for n1 in np1_words:
+        for n2 in np2_words:
+            sent1_entities = np1_token_mapping[n1]
+            sent2_entities = np2_token_mapping[n2]
+            np1_pos = [tok[1] for tok in sent1_entities]
+            np2_pos = [tok[1] for tok in sent2_entities]
+            feature_key = ",".join(np1_pos) + ":" + ",".join(np2_pos)
+
+            #Make feature weight equal to cosine similarity
+            n1_vec = get_noun_phrase_vector(list(n1))
+            n2_vec = get_noun_phrase_vector(list(n2))
+            sim = 1 - cosine(n1_vec, n2_vec)
+            feat[feature_key] = sim
+    return feat
+
+
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
@@ -202,7 +264,8 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
             'second_not_first' : synset_exclusive_second_features,
-            'noun_phrase_modifier' : noun_phrase_modifier_features} #Mapping from feature to method that extracts  given features from sentences
+            'noun_phrase_modifier' : noun_phrase_modifier_features,
+            'noun_phrase_word_vec' : noun_phrase_word_vec_features} #Mapping from feature to method that extracts  given features from sentences
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
