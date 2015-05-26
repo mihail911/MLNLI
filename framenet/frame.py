@@ -21,8 +21,6 @@ class Frame:
         return self.text + ' ' + self.name + ' ' + ' '.join([label + ': ' + stemmer.stem(word) for (label, word) in self.labels.iteritems()])
 
 def frame_similarity(f1, f2):
-    if f1.name != f2.name:
-        raise ValueError('can\'t compare different frame names')
     matches = 0.0
     mismatches = 0.0
     label_mismatches = 0.0

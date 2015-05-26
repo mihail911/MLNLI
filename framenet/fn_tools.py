@@ -40,3 +40,10 @@ def name_to_id(frame_name):
 
 def super_frame_names(frame):
     return super_frame_dict[frame.name]
+
+def is_super_frame(f1, f2):
+    # is f2 a super frame of f1?
+    if f2.name in super_frame_dict[f1.name]:
+        return True
+    else:
+        return False

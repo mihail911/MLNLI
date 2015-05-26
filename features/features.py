@@ -9,7 +9,7 @@ root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
 
 from collections import Counter
-from framenet.fn_tools import super_frame_names
+from framenet.fn_tools import is_super_frame
 from framenet import frame
 import itertools
 from util.utils import sick_train_reader, leaves
@@ -23,7 +23,11 @@ lemmatizer = WordNetLemmatizer()
 
 def word_overlap_features(t1, t2):
     overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
-    return Counter(overlap)
+    feat = Counter(overlap)
+    feat['overlap_length'] = len(overlap)
+    feat['one_not_two_length'] = len([w1 for w1 in leaves(t1) if w1 not in leaves(t2)])
+    feat['two_not_one_length'] = len([w2 for w2 in leaves(t2) if w2 not in leaves(t1)])
+    return feat
 
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
@@ -31,7 +35,30 @@ def word_cross_product_features(t1, t2):
 def tree2sent(t1, t2):
     return ' '.join(leaves(t1)), ' '.join(leaves(t2))
 
+def length_features(t1, t2):
+    feat = {}
+    feat['length_1'] = len(leaves(t1))
+    feat['length_2'] = len(leaves(t2))
+    return feat
 
+def tree_depth(t):
+    curr_depth = 0
+    max_depth = 0
+    for ch in str(t):
+        if ch == '(':
+            curr_depth += 1
+        if ch == ')':
+            curr_depth -= 1
+        if curr_depth > max_depth:
+            max_depth = curr_depth
+    return max_depth
+
+def tree_depth_features(t1, t2):
+    feat = {}
+    feat['depth_1'] = tree_depth(t1)
+    feat['depth_2'] = tree_depth(t2)
+    feat['depth_similarity'] = 1 - abs((feat['depth_1'] - feat['depth_2'])/(feat['depth_1'] + feat['depth_2']))
+    return feat
 
 def penn2wn(tag):
     """ Given a Penn Treebank tag, returns the appropriate 
@@ -227,24 +254,26 @@ def frame_overlap_features(t1, t2, sf1, sf2):
     feat['overlap_frames'] = len(overlap)
     return feat
 
-def frame_entailment_features(t1, t2, sf1, sf2):
-    super_overlap = []
+def frame_cross_product_features(t1, t2, sf1, sf2):
+    frame_names1 = [f1.name for f1 in sf1]
     frame_names2 = [f2.name for f2 in sf2]
-    for f1 in sf1:
-        supframes = super_frame_names(f1)
-        for sup1 in supframes:
-            if sup1 in frame_names2:
-                super_overlap.append('entailedframe_' + sup1)
-                break
+    return Counter([(f1, f2) for f1, f2 in itertools.product(frame_names1, frame_names2)])
 
-    feat = Counter(super_overlap)
+def super_overlap(sf1, sf2):
+    return [(f1, f2) for f1 in sf1 for f2 in sf2 if is_super_frame(f1, f2)]
+
+def frame_entailment_features(t1, t2, sf1, sf2):
+    super_overlap_strings = ['entailed_frame_' + f1.name for (f1, f2) in super_overlap(sf1, sf2)]
+    feat = Counter(super_overlap_strings)
     feat['first_frames'] = len(sf1)
     feat['second_frames'] = len(sf2)
-    feat['entailed_frames'] = len(super_overlap)
+    feat['entailed_frames'] = len(super_overlap_strings)
     return feat
+
 
 def frame_similarity_features(t1, t2, sf1, sf2):
     overlap = [(f1, f2) for f1 in sf1 for f2 in sf2 if f1.name == f2.name]
+    overlap.extend(super_overlap(sf1, sf2))
     feat = {}
     total_sim = 0.0
     worst_sim = 1.0
@@ -279,7 +308,10 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'frame_overlap' : frame_overlap_features,
             'frame_entailment' : frame_entailment_features,
             'frame_similarity' : frame_similarity_features,
-            'negation' : negation_features} #Mapping from feature to method that extracts  given features from sentences
+            'frame_cross_product' : frame_cross_product_features,
+            'negation' : negation_features,
+            'length' : length_features,
+            'tree_depth' : tree_depth_features} #Mapping from feature to method that extracts  given features from sentences
 
 
 def featurizer(reader=sick_train_reader, features_funcs=None):
