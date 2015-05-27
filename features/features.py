@@ -410,7 +410,7 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'frame_cross_product' : frame_cross_product_features,
             'negation' : negation_features,
             'length' : length_features,
-            'tree_depth' : tree_depth_features} #Mapping from feature to method that extracts  given features from sentences
+            'tree_depth' : tree_depth_features,
             'noun_phrase_modifier' : noun_phrase_modifier_features,
             'noun_phrase_word_vec' : noun_phrase_word_vec_features} #Mapping from feature to method that extracts  given features from sentences
 
