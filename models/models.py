@@ -121,6 +121,8 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
         reader_name = 'Train'
 
     dict_vec = pipeline.steps[0][1] #Extracts the dictVectorizer from the pipeline object (assumes vectorizer is first transform applied)
+
+    #Note this is only the actual feature set size if no feature selection/reduction happens!
     print reader_name + ' Feature Set Size: ', len(dict_vec.feature_names_)
 
     prettyColor = color.RED
