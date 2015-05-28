@@ -25,14 +25,7 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-# with open('..', 'r') as f:
-#     count = 0
-#     for line in f:
-#         if count > 5: break
-#         print line
-#         count += 1
-
-GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+GLOVE_MAT, GLOVE_VOCAB, _ = build('../../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
 
 def glvvec(w):
     """Return the GloVe vector for w."""
@@ -49,6 +42,26 @@ def word_overlap_features(t1, t2):
 
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
+def gen_ngrams(s, n = 2):
+    ''' Generator function for ngrams in a sentence represented as a list
+        of words.'''
+    for i in range(0, len(s)):
+        yield ' '.join(s[i:i+n])
+
+
+def gram_overlap(t1, t2, n = 2):
+   
+    s1, s2 = leaves(t1), leaves(t2)
+    gram_overlap = [g1 for g1 in gen_ngrams(s1, n)
+                    for g2 in gen_ngrams(s2, n) if g1 == g2]
+    return Counter(gram_overlap) 
+    
+       
+def gram_cross_product(t1, t2, n = 2):
+    s1, s2 = leaves(t1), leaves(t2)
+    return  Counter([(g1, g2) for g1, g2 in itertools.product(gen_ngrams(s1, n), 
+                                                              gen_ngrams(s2, n))])
 
 def tree2sent(t1, t2):
     return ' '.join(leaves(t1)), ' '.join(leaves(t2))
@@ -419,8 +432,15 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'length' : length_features,
             'tree_depth' : tree_depth_features,
             'noun_phrase_modifier' : noun_phrase_modifier_features,
-            'noun_phrase_word_vec' : noun_phrase_word_vec_features} #Mapping from feature to method that extracts  given features from sentences
-
+            'noun_phrase_word_vec' : noun_phrase_word_vec_features,
+    'bigram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=2),
+    'trigram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=3),
+    'quadgram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=4),
+    'bigram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=2),
+    'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
+    'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4)
+             }
+    
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
     and create the gold label vector.
