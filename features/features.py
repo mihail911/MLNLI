@@ -65,9 +65,10 @@ def gram_overlap(t1, t2, n = 2):
     return Counter(gram_overlap) 
     
        
-def gram_cross_product(t1, t2):
-    return {}
-
+def gram_cross_product(t1, t2, n = 2):
+    s1, s2 = leaves(t1), leaves(t2)
+    return  Counter([(g1, g2) for g1, g2 in itertools.product(gen_ngrams(s1, n), 
+                                                              gen_ngrams(s2, n))])
 
 def tree2sent(t1, t2):
     return ' '.join(leaves(t1)), ' '.join(leaves(t2))
@@ -438,7 +439,9 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'tree_depth' : tree_depth_features,
             'noun_phrase_modifier' : noun_phrase_modifier_features,
             'noun_phrase_word_vec' : noun_phrase_word_vec_features,
-            'ngram_cross_prod' : gram_cross_product,
+    'bigram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=2),
+    'trigram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=3),
+    'quadgram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=4),
     'bigram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=2),
     'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
     'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4)
