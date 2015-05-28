@@ -25,7 +25,7 @@ from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
-_models = {"log_reg" : LogisticRegression(solver = 'lbfgs'), 
+_models = {"log_reg" : LogisticRegression(), 
            "svm" : SVC(kernel='linear'),
            "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True)
            }

@@ -5,8 +5,9 @@ import sys
 
 
 """Add root directory path"""
-root_dir = os.path.dirname(os.path.dirname(__file__))
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath((__file__))))
 sys.path.append(root_dir)
+os.chdir(root_dir)
 
 from collections import Counter
 from framenet.fn_tools import is_super_frame
@@ -25,10 +26,16 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-GLOVE_MAT, GLOVE_VOCAB, _ = build('../../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+GLOVE_MAT, GLOVE_VOCAB = None, None 
 
 def glvvec(w):
     """Return the GloVe vector for w."""
+    global GLOVE_MAT
+    global GLOVE_VOCAB
+    # Lazy loading
+    if not GLOVE_MAT or not GLOVE_VOCAB:
+        GLOVE_MAT, GLOVE_VOCAB = build('distributedwordreps-data/glove.6B.200d.txt', delimiter=' ',
+                                        header=False, quoting=csv.QUOTE_NONE)
     i = GLOVE_VOCAB.index(w)
     return GLOVE_MAT[i]
 
@@ -42,6 +49,25 @@ def word_overlap_features(t1, t2):
 
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
+def gen_ngrams(s, n = 2):
+    ''' Generator function for ngrams in a sentence represented as a list
+        of words.'''
+    for i in range(0, len(s)):
+        yield ' '.join(s[i:i+n])
+
+
+def gram_overlap(t1, t2, n = 2):
+   
+    s1, s2 = leaves(t1), leaves(t2)
+    gram_overlap = [g1 for g1 in gen_ngrams(s1, n)
+                    for g2 in gen_ngrams(s2, n) if g1 == g2]
+    return Counter(gram_overlap) 
+    
+       
+def gram_cross_product(t1, t2):
+    return {}
+
 
 def tree2sent(t1, t2):
     return ' '.join(leaves(t1)), ' '.join(leaves(t2))
@@ -249,7 +275,6 @@ def antonym_features(t1, t2):
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
-
 def word_cross_product_nv(t1, t2):
     nv1 = [w[0] for w in pos_tag(leaves(t1)) if penn2wn(w[1]) in 'nv']
     nv2 = [w[0] for w in pos_tag(leaves(t2)) if penn2wn(w[1]) in 'nv']
@@ -412,8 +437,13 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'length' : length_features,
             'tree_depth' : tree_depth_features,
             'noun_phrase_modifier' : noun_phrase_modifier_features,
-            'noun_phrase_word_vec' : noun_phrase_word_vec_features} #Mapping from feature to method that extracts  given features from sentences
-
+            'noun_phrase_word_vec' : noun_phrase_word_vec_features,
+            'ngram_cross_prod' : gram_cross_product,
+    'bigram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=2),
+    'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
+    'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4)
+             }
+    
 def featurizer(reader=sick_train_reader, features_funcs=None):
     """Map the data in reader to a list of features according to feature_function,
     and create the gold label vector.
