@@ -60,7 +60,7 @@ def gram_overlap(t1, t2, n = 2):
        
 def gram_cross_product(t1, t2, n = 2):
     s1, s2 = leaves(t1), leaves(t2)
-    return  Counter([(g1, g2) for g1, g2 in itertools.product(gen_ngrams(s1, n), 
+    return Counter([(g1, g2) for g1, g2 in itertools.product(gen_ngrams(s1, n),
                                                               gen_ngrams(s2, n))])
 
 def tree2sent(t1, t2):
@@ -328,21 +328,26 @@ def negation_features(t1, t2):
 
 grammar = """ \
             NN-PHRASE: {<DT.*> <NN> <RB>}
-                      {<DT.*> <JJ> <NN>}
+                      { <JJ> <NN>}
                       {<NN> <IN> <NN>}
                       {<RB> <JJ> <NN>}
-                      {<DT.*> <NNS> <RB>}
-                      {<DT.*> <JJ> <NNS>}
+                      { <NNS> <RB>}
+                      { <JJ> <NNS>}
                       {<NNS> <IN> <NNS>}
                       {<RB> <JJ> <NNS>}
-                      {<DT.*> <NNP> <RB>}
-                      {<DT.*> <JJ> <NNP>}
+                      { <NNP> <RB>}
+                      { <JJ> <NNP>}
                       {<NNP> <IN> <NNP>}
                       {<RB> <JJ> <NNP>}
-                      {<DT.*> <NNPS> <RB>}
+                      { <NNPS> <RB>}
                       {<DT.*> <JJ> <NNPS>}
                       {<NNPS> <IN> <NNP>}
                       {<RB> <JJ> <NNPS>}
+                      {<NN> <VBZ> <VBG>}
+                      {<NNS> <VBZ> <VBG>}
+                      {<NN> <VBP> <VBG>}
+                      {<NNS> <VBP> <VBG>}
+
             VB-PHRASE : {<RB> <VB>}
                         {<RB> <VBD>}
                         {<RB> <VBG>}
@@ -361,6 +366,8 @@ grammar = """ \
                         {<RBS> <VBN>}
                         {<RBS> <VBP>}
                         {<RBS> <VBZ>}
+                        {<VBG> <IN> <DT> <NN>}
+                        {<VBG> <IN> <DT> <NNS>}
 
           """
 cp = nltk.RegexpParser(grammar)
