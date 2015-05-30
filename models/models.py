@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = 'mihaileric'
+__author__ = 'mihaileric/chrisbillovits'
 
 import os
 import sys
@@ -30,7 +30,7 @@ _models = {"log_reg" : LogisticRegression(),
            "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True)
            }
 
-_param_grid = {"log_reg" : {'clf__C': np.arange(2.0 ,1.5, -0.5)}, #'feature_selector__k': np.arange(1500, 3000, 300)},
+_param_grid = {"log_reg" : {'clf__C': np.arange(12.0 ,10.5, -0.5)}, #'feature_selector__k': np.arange(1500, 3000, 300)},
 
                "svm" : {'clf__C': np.arange(.8, 2.1, .3), 'feature_selector__k': np.arange(300,400,200)},
 
@@ -106,10 +106,14 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     else:
         reader_name = 'Train'
 
-    feature_selector = pipeline.steps[1][1] #Extracts the dictVectorizer from the pipeline object (assumes vectorizer is first transform applied)
 
-    #Note this is only the actual feature set size if no feature selection/reduction happens!
-    print reader_name + ' Feature Set Size: ', len(feature_selector.get_support(True))
+
+    if len(pipeline.steps) == 2: #Only have a vectorizer and a classifier step in pipeline
+        dict_vectorizer = pipeline.steps[0][1]
+        print reader_name + ' Feature Set Size: ', len(dict_vectorizer.feature_names_)
+    else:
+        feature_selector = pipeline.steps[1][1] #Extracts the dictVectorizer from the pipeline object (assumes feature vectorizer is first transform applied)
+        print reader_name + ' Feature Set Size: ', len(feature_selector.get_support(True))
 
     prettyColor = color.RED
     if reader == 'sick_dev_reader':
