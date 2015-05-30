@@ -25,7 +25,7 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-GLOVE_MAT, GLOVE_VOCAB, _ = build('../../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
 
 def glvvec(w):
     """Return the GloVe vector for w."""
@@ -234,7 +234,6 @@ def hypernym_features(t1, t2):
     hypernyms of sent1. Trying to capture patterns of the form
     'A dog is jumping.' entails 'An animal is being active.'
     Returns an indicator feature of form 'contains_hypernyms: True/False'
-	TODO: Change what this feature returns!
     """
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
@@ -329,8 +328,40 @@ def negation_features(t1, t2):
 
 grammar = """ \
             NN-PHRASE: {<DT.*> <NN> <RB>}
-                      {<DT.*> <NN>}
                       {<DT.*> <JJ> <NN>}
+                      {<NN> <IN> <NN>}
+                      {<RB> <JJ> <NN>}
+                      {<DT.*> <NNS> <RB>}
+                      {<DT.*> <JJ> <NNS>}
+                      {<NNS> <IN> <NNS>}
+                      {<RB> <JJ> <NNS>}
+                      {<DT.*> <NNP> <RB>}
+                      {<DT.*> <JJ> <NNP>}
+                      {<NNP> <IN> <NNP>}
+                      {<RB> <JJ> <NNP>}
+                      {<DT.*> <NNPS> <RB>}
+                      {<DT.*> <JJ> <NNPS>}
+                      {<NNPS> <IN> <NNP>}
+                      {<RB> <JJ> <NNPS>}
+            VB-PHRASE : {<RB> <VB>}
+                        {<RB> <VBD>}
+                        {<RB> <VBG>}
+                        {<RB> <VBN>}
+                        {<RB> <VBP>}
+                        {<RB> <VBZ>}
+                        {<RBR> <VB>}
+                        {<RBR> <VBD>}
+                        {<RBR> <VBG>}
+                        {<RBR> <VBN>}
+                        {<RBR> <VBP>}
+                        {<RBR> <VBZ>}
+                        {<RBS> <VB>}
+                        {<RBS> <VBD>}
+                        {<RBS> <VBG>}
+                        {<RBS> <VBN>}
+                        {<RBS> <VBP>}
+                        {<RBS> <VBZ>}
+
           """
 cp = nltk.RegexpParser(grammar)
 
