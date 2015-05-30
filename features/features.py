@@ -476,7 +476,8 @@ features_mapping = {'word_cross_product': word_cross_product_features,
     'quadgram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=4),
     'bigram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=2),
     'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
-    'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4)
+    'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4),
+    'phrase_share' : phrase_share_feature
              }
     
 def featurizer(reader=sick_train_reader, features_funcs=None):
