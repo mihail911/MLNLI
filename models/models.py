@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-__author__ = 'mihaileric'
+__author__ = 'mihaileric/chrisbillovits'
 
 import os
 import sys
@@ -103,7 +103,7 @@ def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels 
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([s1 for s1, _ in pipeline.steps],
                                                                         parameters), color.GREEN)
 
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = -1)
+    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
     grid_search.fit(feat_vec, labels)
     prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
                                                               grid_search.best_params_) , color.RED)
@@ -117,10 +117,14 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     else:
         reader_name = 'Train'
 
-    dict_vec = pipeline.steps[0][1] #Extracts the dictVectorizer from the pipeline object (assumes vectorizer is first transform applied)
 
-    #Note this is only the actual feature set size if no feature selection/reduction happens!
-    print reader_name + ' Feature Set Size: ', len(dict_vec.feature_names_)
+
+    if len(pipeline.steps) == 2: #Only have a vectorizer and a classifier step in pipeline
+        dict_vectorizer = pipeline.steps[0][1]
+        print reader_name + ' Feature Set Size: ', len(dict_vectorizer.feature_names_)
+    else:
+        feature_selector = pipeline.steps[1][1] #Extracts the dictVectorizer from the pipeline object (assumes feature vectorizer is first transform applied)
+        print reader_name + ' Feature Set Size: ', len(feature_selector.get_support(True))
 
     prettyColor = color.RED
     if reader == 'sick_dev_reader':

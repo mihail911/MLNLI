@@ -1,4 +1,4 @@
-__author__ = 'mihaileric'
+__author__ = 'mihaileric/chrisbillovits'
 
 import os,sys
 import re
@@ -49,7 +49,7 @@ prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
 
 start_train = time.time()
 model, feat_vec, labels = build_model(clf = params['model'], features = params['features'], file_name = params['feature_file'] + ".train",
-									  load_vec = params['load_vectors'], feature_selector = SelectKBest(chi2, k = 300))
+									  load_vec = params['load_vectors'], feature_selector = SelectKBest(chi2, k = 'all'))
 
 best_model = parameter_tune(params['model'], model, feat_vec, labels, grid = params['param_grid'])
 end_train = time.time() 

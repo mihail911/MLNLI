@@ -1,13 +1,12 @@
-__author__ = 'mihaileric'
+__author__ = 'chrisbillovits/mihaileric/chrisguthrie'
 
 import os
 import sys
 import re
 
 """Add root directory path"""
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath((__file__))))
+root_dir = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(root_dir)
-os.chdir(root_dir)
 
 from collections import Counter
 from framenet.fn_tools import is_super_frame
@@ -26,16 +25,10 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-GLOVE_MAT, GLOVE_VOCAB = None, None 
+GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
 
 def glvvec(w):
     """Return the GloVe vector for w."""
-    global GLOVE_MAT
-    global GLOVE_VOCAB
-    # Lazy loading
-    if not GLOVE_MAT or not GLOVE_VOCAB:
-        GLOVE_MAT, GLOVE_VOCAB = build('distributedwordreps-data/glove.6B.200d.txt', delimiter=' ',
-                                        header=False, quoting=csv.QUOTE_NONE)
     i = GLOVE_VOCAB.index(w)
     return GLOVE_MAT[i]
 
@@ -67,7 +60,7 @@ def gram_overlap(t1, t2, n = 2):
        
 def gram_cross_product(t1, t2, n = 2):
     s1, s2 = leaves(t1), leaves(t2)
-    return  Counter([(g1, g2) for g1, g2 in itertools.product(gen_ngrams(s1, n), 
+    return Counter([(g1, g2) for g1, g2 in itertools.product(gen_ngrams(s1, n),
                                                               gen_ngrams(s2, n))])
 
 def tree2sent(t1, t2):
@@ -348,7 +341,6 @@ def hypernym_features(t1, t2):
     hypernyms of sent1. Trying to capture patterns of the form
     'A dog is jumping.' entails 'An animal is being active.'
     Returns an indicator feature of form 'contains_hypernyms: True/False'
-	TODO: Change what this feature returns!
     """
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
@@ -382,6 +374,7 @@ def antonym_features(t1, t2):
 
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
 
 def word_cross_product_nv(t1, t2):
     nv1 = [w[0] for w in pos_tag(leaves(t1)) if penn2wn(w[1]) in 'nv']
@@ -442,8 +435,47 @@ def negation_features(t1, t2):
 
 grammar = """ \
             NN-PHRASE: {<DT.*> <NN> <RB>}
-                      {<DT.*> <NN>}
-                      {<DT.*> <JJ> <NN>}
+                      { <JJ> <NN>}
+                      {<NN> <IN> <NN>}
+                      {<RB> <JJ> <NN>}
+                      { <NNS> <RB>}
+                      { <JJ> <NNS>}
+                      {<NNS> <IN> <NNS>}
+                      {<RB> <JJ> <NNS>}
+                      { <NNP> <RB>}
+                      { <JJ> <NNP>}
+                      {<NNP> <IN> <NNP>}
+                      {<RB> <JJ> <NNP>}
+                      { <NNPS> <RB>}
+                      {<DT.*> <JJ> <NNPS>}
+                      {<NNPS> <IN> <NNP>}
+                      {<RB> <JJ> <NNPS>}
+                      {<NN> <VBZ> <VBG>}
+                      {<NNS> <VBZ> <VBG>}
+                      {<NN> <VBP> <VBG>}
+                      {<NNS> <VBP> <VBG>}
+
+            VB-PHRASE : {<RB> <VB>}
+                        {<RB> <VBD>}
+                        {<RB> <VBG>}
+                        {<RB> <VBN>}
+                        {<RB> <VBP>}
+                        {<RB> <VBZ>}
+                        {<RBR> <VB>}
+                        {<RBR> <VBD>}
+                        {<RBR> <VBG>}
+                        {<RBR> <VBN>}
+                        {<RBR> <VBP>}
+                        {<RBR> <VBZ>}
+                        {<RBS> <VB>}
+                        {<RBS> <VBD>}
+                        {<RBS> <VBG>}
+                        {<RBS> <VBN>}
+                        {<RBS> <VBP>}
+                        {<RBS> <VBZ>}
+                        {<VBG> <IN> <DT> <NN>}
+                        {<VBG> <IN> <DT> <NNS>}
+
           """
 cp = nltk.RegexpParser(grammar)
 
@@ -552,7 +584,8 @@ features_mapping = {'word_cross_product': word_cross_product_features,
     'quadgram_cross_prod' : lambda t1, t2: gram_cross_product(t1, t2, n=4),
     'bigram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=2),
     'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
-    'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4)
+    'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4),
+    'phrase_share' : phrase_share_feature
              }
     
 def featurizer(reader=sick_train_reader, features_funcs=None):

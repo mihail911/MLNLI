@@ -180,25 +180,25 @@ for readername, reader in (('Train', sick_train_reader),('Dev', sick_dev_reader)
 #
 #
 #
-# GLOVE_MAT, GLOVE_VOCAB, _ = build('../distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+GLOVE_MAT, GLOVE_VOCAB, _ = build('../distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
 #
 #
-#
-# def glvvec(w):
-#     """Return the GloVe vector for w."""
-#     i = GLOVE_VOCAB.index(w)
-#     return GLOVE_MAT[i]
-#
-# def glove_features(t):
-#     """Return the mean glove vector of the leaves in tree t."""
-#     return np.mean([glvvec(w) for w in leaves(t) if w in GLOVE_VOCAB], axis=0)
-#
-# def vec_concatenate(u, v):
-#     return np.concatenate((u, v))
-#
-# def glove_featurizer(t1, t2):
-#     """Combined input vector based on glove_features and concatenation."""
-#     return vec_concatenate(glove_features(t1), glove_features(t2))
+
+def glvvec(w):
+    """Return the GloVe vector for w."""
+    i = GLOVE_VOCAB.index(w)
+    return GLOVE_MAT[i]
+
+def glove_features(t):
+    """Return the mean glove vector of the leaves in tree t."""
+    return np.mean([glvvec(w) for w in leaves(t) if w in GLOVE_VOCAB], axis=0)
+
+def vec_concatenate(u, v):
+    return np.concatenate((u, v))
+
+def glove_featurizer(t1, t2):
+    """Combined input vector based on glove_features and concatenation."""
+    return vec_concatenate(glove_features(t1), glove_features(t2))
 #
 #
 #
