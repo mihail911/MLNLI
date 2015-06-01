@@ -17,7 +17,8 @@ from features.features import word_cross_product_features, word_overlap_features
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
 from util.utils import sick_train_reader, sick_dev_reader
@@ -25,17 +26,27 @@ from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
-_models = {"log_reg" : LogisticRegression(), 
+_models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'entropy'),
+           "log_reg" : LogisticRegression(), 
            "svm" : SVC(kernel='linear'),
-           "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True)
+           "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True),
+           "linear" : SGDClassifier(loss = 'hinge', alpha = 0.001, n_jobs= -1)
+           # n_jobs = -1 is necessary for an sgdclassifier
+
            }
 
-_param_grid = {"log_reg" : {'clf__C': np.arange(2.0 ,0.5, -0.5)}, #'feature_selector__k': np.arange(1500, 3000, 300)}, 
+_param_grid = { "forest" : {},
+                "log_reg" : {'clf__C': np.arange(2.0 ,0.5, -0.5)}, #'feature_selector__k': np.arange(1500, 3000, 300)}, 
 
                "svm" : {'clf__C': np.arange(.8, 2.1, .3), 'feature_selector__k': np.arange(300,400,200)},
 
-               "naive_bayes" : {} # {'clf__alpha': [1.0, 1.25, 1.5, 1.7, 2.0], 
-                                  # 'feature_selector__alpha' : [0.03, 0.04, 0.05]}
+               "naive_bayes" : {'clf__alpha': [1.0, 1.25, 1.5, 1.7, 2.0], 
+                                'feature_selector__alpha' : [0.03, 0.04,
+                                0.05]},
+                "linear" : {'clf__alpha' : [0.01, 0.02, 0.03, 0.04, 0.05],
+                                'feature_selector__k' : [300, 500, 750,
+                                1000, 1500, 2000, 4000]}
+                                                                
                }
 
 def save_vectors (feat_vec = None, labels = None, file_extension = None):
@@ -69,7 +80,7 @@ def load_vectors (file_extension = None):
     return feat_vec, labels
 
 
-def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = False), 
+def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = True), 
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
     ''' Builds the model of choice. ''' 
     global _models
