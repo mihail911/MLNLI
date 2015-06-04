@@ -25,7 +25,7 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+#GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
 
 def glvvec(w):
     """Return the GloVe vector for w."""
@@ -281,7 +281,6 @@ def phrase_common_hyp(t1, t2):
     ''' Note which words have common hypernyms '''
     for v in lv_1:
         for w in lv_2:
-            print v, w
             if have_common_hyp(v, w):
                  hyp_cache.add((v, w))
            
@@ -307,7 +306,7 @@ def general_hypernym(t1, t2):
     s1_leaves, s2_leaves = leaves(t1), leaves(t2)
     sent1, sent2 = ' '.join(s1_leaves), ' '.join(s2_leaves)
     
-    Hsyns = extract_synsets(sent1)
+    hsyns = extract_synsets(sent1)
     syns = extract_synsets(sent2)
 
     all_hyper_synsets = set(extract_synsets(sent1))

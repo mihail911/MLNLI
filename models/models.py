@@ -26,7 +26,7 @@ from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
-_models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'entropy'),
+_models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'entropy', n_jobs = -1),
            "log_reg" : LogisticRegression(), 
            "svm" : SVC(kernel='linear'),
            "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True),
