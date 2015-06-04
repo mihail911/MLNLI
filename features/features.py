@@ -242,9 +242,10 @@ def phrase_share_feature(t1, t2):
     shared = [str((v, w)) for v in p1 for w in p2 if v == w]
     return Counter(shared)
 
+common_hyp_counter = 0
 def phrase_common_hyp(t1, t2):
     ''' Checks for lowest common ancestor between two words in a phrase. '''
-
+    global common_hyp_counter
     syns_cache = {}
     lv_1, lv_2 = leaves(t1), leaves(t2)
     def have_common_hyp(v, w):
@@ -298,6 +299,8 @@ def phrase_common_hyp(t1, t2):
         common_phrases = [(p, q) for p in p1 for q in p2 if v in p and w in q]
         for p, q in common_phrases:
             features["com_hyp: {0} {1}".format(p, q)] = 1.0
+            common_hyp_counter += 1
+    
     return features
     
 def general_hypernym(t1, t2):   

@@ -92,7 +92,6 @@ def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vecto
     if not load_vec:    
         save_vectors(feat_vec, labels, file_extension = file_name)
 
-    clf_pipe.fit(feat_vec, labels)
     return clf_pipe, feat_vec, labels
 
 def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels = None, grid = []):
@@ -102,8 +101,18 @@ def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels 
     prettyPrint("Tune on grid parameters: {0}".format(parameters), color.GREEN)
     prettyPrint("Pipeline steps: {0}\nPipeline parameter grid: {1}".format([s1 for s1, _ in pipeline.steps],
                                                                         parameters), color.GREEN)
+    gridSize = 1
+    for key in parameters.keys():
+        gridSize *= len(parameters[key])
 
-    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10)
+    if gridSize == 1: # Save time by not cross-validating
+        prettyPrint(" *** Skipping cross-validation: only one grid option ***", color.GREEN)
+        parameters = {key : val[0] for key, val in parameters.iteritems() }
+        pipeline.set_params(**parameters)
+        pipeline.fit(feat_vec, labels)
+        return pipeline
+
+    grid_search = GridSearchCV(estimator = pipeline, param_grid = parameters, cv = 10, n_jobs = -1)
     grid_search.fit(feat_vec, labels)
     prettyPrint( "Best score: {0} \nBest params: {1}".format(grid_search.best_score_,
                                                               grid_search.best_params_) , color.RED)
@@ -116,8 +125,6 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
         reader_name = 'Dev'
     else:
         reader_name = 'Train'
-
-
 
     if len(pipeline.steps) == 2: #Only have a vectorizer and a classifier step in pipeline
         dict_vectorizer = pipeline.steps[0][1]
