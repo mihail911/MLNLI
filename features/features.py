@@ -2,7 +2,7 @@ __author__ = 'chrisbillovits/mihaileric/chrisguthrie'
 
 import os
 import sys
-
+import re
 
 """Add root directory path"""
 root_dir = os.path.dirname(os.path.dirname(__file__))
@@ -14,7 +14,7 @@ from framenet import frame
 import itertools
 import nltk
 import csv
-from util.utils import sick_train_reader, leaves
+from util.utils import *
 import numpy as np
 
 from nltk import word_tokenize, pos_tag
@@ -25,7 +25,7 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+#GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
 
 def glvvec(w):
     """Return the GloVe vector for w."""
@@ -84,6 +84,42 @@ def tree_depth(t):
             max_depth = curr_depth
     return max_depth
 
+def word_depth(word, t):
+    ''' Returns the depth of a word in the tree.  -1 if it does not exist '''
+    tokens = leaves(t)
+    structured_sent = str(t)
+    if word not in tokens:
+        return -1
+    
+    depth = 0
+    word_ind = structured_sent.index('\'' + word + '\'')
+    for c in structured_sent[:word_ind]:
+        if c == '(':
+            depth += 1
+        elif c == ')':
+            depth -= 1
+    return depth
+        
+def all_word_depth(t):
+    ''' List of depths of words in the tree'''
+    depth = 0
+    depth_list = []
+    counter = 0
+    for ch in str(t):
+        if ch == '(':
+            depth += 1
+        elif ch == ')':
+            depth -= 1
+        elif ch == '\'':
+            if counter:
+                depth_list.append(depth)
+                counter = 0
+            else:
+                counter = 1
+        
+    return depth_list
+          
+
 def tree_depth_features(t1, t2):
     feat = {}
     feat['depth_1'] = tree_depth(t1)
@@ -133,7 +169,7 @@ def extract_synsets (sent):
         POS tag.  '''
     synsets = []
     tagged = pos_tag(sent.split())
-   # print tagged
+    
     for word, pos in tagged:
         synsets.extend(wn.synsets(word, pos=penn2wn(pos)))
     return synsets
@@ -195,7 +231,7 @@ def subphrase_generator(tree):
             for sp in subtree:
                 phrases.append(sp)
                 extract_subphrases(sp)
-
+                
     extract_subphrases(tree)
     return phrases
 
@@ -206,6 +242,67 @@ def phrase_share_feature(t1, t2):
     shared = [str((v, w)) for v in p1 for w in p2 if v == w]
     return Counter(shared)
 
+common_hyp_counter = 0
+def phrase_common_hyp(t1, t2):
+    ''' Checks for lowest common ancestor between two words in a phrase. '''
+    global common_hyp_counter
+    syns_cache = {}
+    lv_1, lv_2 = leaves(t1), leaves(t2)
+    def have_common_hyp(v, w):
+        ''' If two word senses have a common hypernym that
+            is not a superset / subset relationship, then returns true
+            else false. '''
+        if v in lv_2 or w in lv_1:
+            return False
+        for syn_v in syns_cache[v]:
+            for syn_w in syns_cache[w]:
+                common_hyp = lch(syn_v, syn_w)
+                for h in common_hyp:
+                    h_name = h.name().partition('.')[0]
+                    if h_name not in lv_1 and h_name not in lv_2:
+                        return True
+                    else:
+                        continue
+        return False
+    ''' ------------------------------------ '''
+    
+    hyp_cache = set()
+    
+    # for each word product, if some synset of the words has a common
+    # hypernym, then features[phrase : phrase] += 1
+    syn1 = extract_synsets(' '.join(lv_1))
+    syn2 = extract_synsets(' '.join(lv_2))
+
+    ''' Tabulate synsets for each word in each sentence ''' 
+    for word in lv_1:
+        syns_cache[word] = [syn for syn in syn1 if syn.name().partition('.')[0] == word]  
+    for word in lv_2:
+        syns_cache[word] = [syn for syn in syn2 if syn.name().partition('.')[0] == word]
+
+    ''' Note which words have common hypernyms '''
+    for v in lv_1:
+        for w in lv_2:
+            if have_common_hyp(v, w):
+                 hyp_cache.add((v, w))
+           
+    ''' Use a subphrase generator on the sentence.
+        Enforce phrase length > 1 '''
+    p1, p2 = subphrase_generator(t1), subphrase_generator(t2)
+    
+    p1 = [leaves(p) for p in p1 if len(str(p).split(' ')) > 1]
+    p2 = [leaves(p) for p in p2 if len(str(p).split(' ')) > 1]
+
+    features = {}
+        
+    ''' Count the phrases in which each overlapping word exists.  '''
+    for v, w in hyp_cache:
+        common_phrases = [(p, q) for p in p1 for q in p2 if v in p and w in q]
+        for p, q in common_phrases:
+            features["com_hyp: {0} {1}".format(p, q)] = 1.0
+            common_hyp_counter += 1
+    
+    return features
+    
 def general_hypernym(t1, t2):   
     ''' Calculates hypernyms of sentence 1 and sentence 2 using matching POS tags. 
         Also permits self-hypernyms '''
@@ -228,7 +325,19 @@ def general_hypernym(t1, t2):
 
     feature_string = "hypernyms {0} {1} {2}".format(s1_len, s2_len, len(overlap))
     return Counter({feature_string : 1})
- 
+
+
+_lch_cache = {}
+def lch(syn1, syn2):
+    ''' Utility function to memoize common hypernym relation calls'''
+    global _lch_cache
+    if (syn1, syn2) not in _lch_cache:
+        _lch_cache[(syn1, syn2)] = syn1.lowest_common_hypernyms(syn2)
+        _lch_cache[(syn2, syn1)] = _lch_cache[(syn1, syn2)]
+    return _lch_cache[(syn1, syn2)]
+
+
+
 def hypernym_features(t1, t2):
     """ Calculate hypernyms of sent1 and check if synsets of sent2 contained in
     hypernyms of sent1. Trying to capture patterns of the form
@@ -459,6 +568,7 @@ features_mapping = {'word_cross_product': word_cross_product_features,
             'synset_overlap' : synset_overlap_features,
             'hypernyms' : hypernym_features,
             'new_hyp' : general_hypernym,
+            'common_hypernym': phrase_common_hyp,
             'antonyms' : antonym_features,
             'first_not_second' : synset_exclusive_first_features,
             'second_not_first' : synset_exclusive_second_features,
