@@ -37,92 +37,89 @@ def sick_reader_modified(src_filename):
             break
         label, t1, t2 = example[:3]
         if not label.startswith('%'): # Some files use leading % for comments.
-            if label == 'ENTAILMENT':
-                pass
-                #print (label, str2tree(t1), str2tree(t2))
-                #print (label, str2tree(t1), str2tree(t2))
-                #print subphrase_generator(str2tree(t1))
-                #print subphrase_generator(str2tree(t2))
-                # print subphrases(str2tree(t1))
-                # print subphrases(str2tree(t2))
-                #print nltk.pos_tag(leaves(str2tree(t1)))
-                #print nltk.pos_tag(leaves(str2tree(t2)))
-                #print '=' * 15
-                #print '=' * 15
+            print (label, leaves(str2tree(t1)), leaves(str2tree(t2)))
+            #print subphrase_generator(str2tree(t1))
+            #print subphrase_generator(str2tree(t2))
+            # print subphrases(str2tree(t1))
+            # print subphrases(str2tree(t2))
+            #print nltk.pos_tag(leaves(str2tree(t1)))
+            #print nltk.pos_tag(leaves(str2tree(t2)))
+            #print '=' * 15
+            #print '=' * 15
 
         count += 1
 
 sick_reader_modified(data_dir+"SICK_train_parsed.txt")
 
-
-text = ['A', 'motorcyclist', 'of', 'dog', 'is', 'dangerously', 'riding', 'motorbikes', 'along', 'a', 'roadway']
-grammar = """ \
-            NN-PHRASE: {<DT.*> <NN> <RB>}
-                      { <JJ> <NN>}
-                      {<NN> <IN> <NN>}
-                      {<RB> <JJ> <NN>}
-                      { <NNS> <RB>}
-                      { <JJ> <NNS>}
-                      {<NNS> <IN> <NNS>}
-                      {<RB> <JJ> <NNS>}
-                      { <NNP> <RB>}
-                      { <JJ> <NNP>}
-                      {<NNP> <IN> <NNP>}
-                      {<RB> <JJ> <NNP>}
-                      { <NNPS> <RB>}
-                      {<DT.*> <JJ> <NNPS>}
-                      {<NNPS> <IN> <NNP>}
-                      {<RB> <JJ> <NNPS>}
-                      {<NN> <VBZ> <VBG>}
-                      {<NNS> <VBZ> <VBG>}
-                      {<NN> <VBP> <VBG>}
-                      {<NNS> <VBP> <VBG>}
-
-            VB-PHRASE : {<RB> <VB>}
-                        {<RB> <VBD>}
-                        {<RB> <VBG>}
-                        {<RB> <VBN>}
-                        {<RB> <VBP>}
-                        {<RB> <VBZ>}
-                        {<RBR> <VB>}
-                        {<RBR> <VBD>}
-                        {<RBR> <VBG>}
-                        {<RBR> <VBN>}
-                        {<RBR> <VBP>}
-                        {<RBR> <VBZ>}
-                        {<RBS> <VB>}
-                        {<RBS> <VBD>}
-                        {<RBS> <VBG>}
-                        {<RBS> <VBN>}
-                        {<RBS> <VBP>}
-                        {<RBS> <VBZ>}
-                        {<VBG> <IN> <DT> <NN>}
-                        {<VBG> <IN> <DT> <NNS>}
-
-          """
-s1 = ((('A', 'man'), ('in', ('a', ('black', 'jersey')))), ('is', ('standing', ('in', ('a', 'gym')))))
-s2 =  (('A', 'man'), ((('is', ('standing', ('in', ('a', 'gym')))), 'and'), ('is', ('wearing', ('a', 'jersey')))))
-s1tokens = leaves(s1)
-s2tokens = leaves(s2)
-
-cp = nltk.RegexpParser(grammar)
-tree1 = cp.parse(nltk.pos_tag(s1tokens))
-tree2 = cp.parse(nltk.pos_tag(s2tokens))
-
-for subtree in tree1.subtrees():
-    print 'Subtree: ', subtree
-    if subtree.label() == 'NN-PHRASE' or subtree.label() == 'VB-PHRASE':
-        print subtree.leaves()
-        print '-'*10
-
-for subtree in tree2.subtrees():
-    print 'Subtree: ', subtree
-    if subtree.label() == 'NN-PHRASE' or subtree.label() == 'VB-PHRASE':
-        print subtree.leaves()
-        print '-'*10
-
-#x1 = (('A', 'motorcyclist'), ('is', (('riding', (('a', 'motorbike'), 'dangerously')), ('along', ('a', 'roadway')))))
-#x2 =  (('A', 'motorcyclist'), ('is', ('riding', (('a', 'motorbike'), ('along', ('a', 'roadway'))))))
-
-# c = noun_phrase_modifier_features(x1, x2)
-#noun_phrase_word_vec_features(x1,x2)
+#
+# text = ['A', 'motorcyclist', 'of', 'dog', 'is', 'dangerously', 'riding', 'motorbikes', 'along', 'a', 'roadway']
+# grammar = """ \
+#             NN-PHRASE: {<DT.*> <NN> <RB>}
+#                       { <JJ> <NN>}
+#                       {<NN> <IN> <NN>}
+#                       {<RB> <JJ> <NN>}
+#                       { <NNS> <RB>}
+#                       { <JJ> <NNS>}
+#                       {<NNS> <IN> <NNS>}
+#                       {<RB> <JJ> <NNS>}
+#                       { <NNP> <RB>}
+#                       { <JJ> <NNP>}
+#                       {<NNP> <IN> <NNP>}
+#                       {<RB> <JJ> <NNP>}
+#                       { <NNPS> <RB>}
+#                       {<DT.*> <JJ> <NNPS>}
+#                       {<NNPS> <IN> <NNP>}
+#                       {<RB> <JJ> <NNPS>}
+#                       {<NN> <VBZ> <VBG>}
+#                       {<NNS> <VBZ> <VBG>}
+#                       {<NN> <VBP> <VBG>}
+#                       {<NNS> <VBP> <VBG>}
+#
+#             VB-PHRASE : {<RB> <VB>}
+#                         {<RB> <VBD>}
+#                         {<RB> <VBG>}
+#                         {<RB> <VBN>}
+#                         {<RB> <VBP>}
+#                         {<RB> <VBZ>}
+#                         {<RBR> <VB>}
+#                         {<RBR> <VBD>}
+#                         {<RBR> <VBG>}
+#                         {<RBR> <VBN>}
+#                         {<RBR> <VBP>}
+#                         {<RBR> <VBZ>}
+#                         {<RBS> <VB>}
+#                         {<RBS> <VBD>}
+#                         {<RBS> <VBG>}
+#                         {<RBS> <VBN>}
+#                         {<RBS> <VBP>}
+#                         {<RBS> <VBZ>}
+#                         {<VBG> <IN> <DT> <NN>}
+#                         {<VBG> <IN> <DT> <NNS>}
+#
+#           """
+# s1 = ((('A', 'man'), ('in', ('a', ('black', 'jersey')))), ('is', ('standing', ('in', ('a', 'gym')))))
+# s2 =  (('A', 'man'), ((('is', ('standing', ('in', ('a', 'gym')))), 'and'), ('is', ('wearing', ('a', 'jersey')))))
+# s1tokens = leaves(s1)
+# s2tokens = leaves(s2)
+#
+# cp = nltk.RegexpParser(grammar)
+# tree1 = cp.parse(nltk.pos_tag(s1tokens))
+# tree2 = cp.parse(nltk.pos_tag(s2tokens))
+#
+# for subtree in tree1.subtrees():
+#     print 'Subtree: ', subtree
+#     if subtree.label() == 'NN-PHRASE' or subtree.label() == 'VB-PHRASE':
+#         print subtree.leaves()
+#         print '-'*10
+#
+# for subtree in tree2.subtrees():
+#     print 'Subtree: ', subtree
+#     if subtree.label() == 'NN-PHRASE' or subtree.label() == 'VB-PHRASE':
+#         print subtree.leaves()
+#         print '-'*10
+#
+# #x1 = (('A', 'motorcyclist'), ('is', (('riding', (('a', 'motorbike'), 'dangerously')), ('along', ('a', 'roadway')))))
+# #x2 =  (('A', 'motorcyclist'), ('is', ('riding', (('a', 'motorbike'), ('along', ('a', 'roadway'))))))
+#
+# # c = noun_phrase_modifier_features(x1, x2)
+# #noun_phrase_word_vec_features(x1,x2)
