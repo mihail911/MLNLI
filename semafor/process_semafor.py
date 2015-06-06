@@ -10,8 +10,6 @@ def frametuples(filename):
     next_s_id = 0
     for sentence in root.iter('sentence'):
         s_id = int(sentence.get('ID'))
-        if not s_id == next_s_id:
-            raise RuntimeError('sentences out of order')
         next_s_id += 1
         annotation_sets = sentence.iter('annotationSet')
         text = sentence.find('text').text
