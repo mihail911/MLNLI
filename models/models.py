@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
-from util.utils import sick_train_reader, sick_dev_reader
+from util.utils import sick_train_reader, sick_dev_reader, sick_train_dev_reader
 from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
@@ -137,6 +137,8 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     """Evaluates the given model on the test data and outputs statistics."""
     if reader == sick_dev_reader:
         reader_name = 'Dev'
+    elif reader == sick_train_reader:
+        reader_name = 'Train + Dev'
     else:
         reader_name = 'Train'
 
@@ -151,6 +153,9 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     if reader == 'sick_dev_reader':
         reader = sick_dev_reader
         file_name += ".dev"
+    elif reader == 'sick_train_dev_reader':
+        reader = sick_train_dev_reader
+        file_name += ".train_dev"
     elif reader == 'sick_train_reader':
         reader = sick_train_reader
         file_name += ".train"
