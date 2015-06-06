@@ -29,7 +29,7 @@ def run(args):
     test_model(params, model, feat_vec, labels, data_set = 'train')
     params['load_vectors'] = load
     test_model(params, model, feat_vec, labels, data_set = 'dev')
-#    prettyPrint("-" * 80, color.YELLOW)
+    prettyPrint("-" * 80, color.YELLOW)
     
 def set_config(config_file):
     ''' Sets the configuration file.  Returns a parameter hash. '''
@@ -71,8 +71,12 @@ def train_model(params):
 
 def test_model (params, best_model, feat_vec, labels, data_set = 'train'):
     ''' Tests a trained model. '''
-    evaluate_model(best_model, reader = 'sick_{0}_reader'.format(data_set), features = params['features'], file_name = params['feature_file'], 
-			   load_vec = params['load_vectors'])
+    
+    evaluate_model(best_model, reader = 'sick_{0}_reader'.format(data_set),
+                    features = params['features'],
+                    file_name = params['feature_file'],
+                    load_vec = params['load_vectors'])
+    
     prettyPrint("Finished training and evaluating model\n" + "-" * 80, color.YELLOW)
 
 if __name__ == '__main__':

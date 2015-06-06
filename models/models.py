@@ -92,22 +92,20 @@ def obtain_vectors(file_extension = None, load_vec = True, reader = None, featur
     feat_vec, labels = None, None
     if load_vec:
         feat_vec, labels = load_vectors(file_extension)
-    if not feat_vec:
+    if not load_vec or not feat_vec:
         feat_vec, labels = featurizer(reader, features)
-    return featurizer(reader, features)
+        save_vectors(feat_vec, labels, file_extension)
+    return feat_vec, labels
 
 def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = True), 
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
     ''' Builds the model of choice. ''' 
     global _models
-
+    
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
                         ('clf', _models[clf])])
+    feat_vec, labels = obtain_vectors(file_name, load_vec, train_reader, features)
     
-    feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
-    if not load_vec:    
-        save_vectors(feat_vec, labels, file_extension = file_name)
-
     return clf_pipe, feat_vec, labels
 
 def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels = None, grid = []):
@@ -157,11 +155,8 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
         reader = sick_train_reader
         file_name += ".train"
         prettyColor = color.CYAN
-
-    feat_vec, gold_labels = load_vectors (file_name) if load_vec else featurizer(reader, features)
-    if not load_vec:
-        save_vectors (feat_vec, gold_labels, file_name)
-
+    feat_vec, gold_labels = obtain_vectors(file_name, load_vec, reader, features)
+    
     predicted_labels = pipeline.predict(feat_vec)
     prettyPrint( metrics.classification_report(gold_labels, predicted_labels), prettyColor)
 
