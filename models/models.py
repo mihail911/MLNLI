@@ -66,19 +66,35 @@ def save_vectors (feat_vec = None, labels = None, file_extension = None):
         pickle.dump(labels, f)
 
 def load_vectors (file_extension = None):
-    """ Loads the feature vector and classification labels from the canonical output files in output/ """
-
+    """ Loads the feature vector and classification labels from the
+        canonical output files in output.  If the file does not exist,
+        the load is aborted. 
+    """
+    
     feat_file_name = 'output/' + file_extension + '.feature'
     label_file_name = 'output/' + file_extension + '.label'
-
+    
     prettyPrint( "Loading feature vectors and labels from disk ... ", color.CYAN)
+    if not os.path.isfile(feat_file_name) or not os.path.isfile(label_file_name):
+        prettyPrint("Feature vector files {0} could not be found.  Generating from scratch instead ...".format(feat_file_name), color.CYAN)
+        return None, None
     with open(feat_file_name, 'r') as f:
         feat_vec = pickle.load(f)
     with open(label_file_name, 'r') as f:
         labels = pickle.load(f)
+
     prettyPrint ("Done loading feature vectors.", color.CYAN)
     return feat_vec, labels
 
+def obtain_vectors(file_extension = None, load_vec = True, reader = None, features = None):
+    ''' Loads feature vectors either from file, or generates them anew.
+        If the path doesn't exist, the load_vec flag is ignored. '''
+    feat_vec, labels = None, None
+    if load_vec:
+        feat_vec, labels = load_vectors(file_extension)
+    if not feat_vec:
+        feat_vec, labels = featurizer(reader, features)
+    return featurizer(reader, features)
 
 def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = True), 
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
@@ -87,7 +103,7 @@ def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vecto
 
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
                         ('clf', _models[clf])])
-
+    
     feat_vec, labels = load_vectors (file_name) if load_vec else featurizer(train_reader, features)
     if not load_vec:    
         save_vectors(feat_vec, labels, file_extension = file_name)
