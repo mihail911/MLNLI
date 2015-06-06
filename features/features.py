@@ -25,12 +25,63 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-#GLOVE_MAT, GLOVE_VOCAB, _ = build('../cs224u/distributedwordreps-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+GLOVE_MAT, GLOVE_VOCAB = np.zeros(1), np.zeros(1)
 
 def glvvec(w):
+
     """Return the GloVe vector for w."""
+
+    if not GLOVE_MAT.any():
+        init_glv()
     i = GLOVE_VOCAB.index(w)
     return GLOVE_MAT[i]
+
+def init_glv():
+    
+    global GLOVE_MAT
+    if GLOVE_MAT.any():
+        return
+    ''' Lazily initializes GloVe vectors if they don't already exist '''
+    prettyPrint("Building GloVe vectors: ", color.CYAN)
+    GLOVE_MAT, GLOVE_VOCAB, _ = build(root_dir + '/nli-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+    prettyPrint("Loaded vectors, dimension {0} ".format(np.shape(GLOVE_MAT)[1]), color.CYAN)
+
+def weighted_glv(tree):
+    ''' Weigh the vector importance on compositionality.
+        Leaves that are lower in the constituency parse
+        are more so the "basis of meaning" for the sentence
+        so we weigh it more.  
+    '''
+
+    init_glv()
+    words = []      # (word, height in tree)
+    depthSize = {}  # L1 norm of tree depths
+    depthSize['count'] = 0
+
+    def extract_words(subtree, n):
+
+        for phrase in subtree:
+            if isinstance(phrase,tuple):
+                extract_words(phrase, n+1)
+            else:
+                words.append((phrase, n))
+                depthSize['count'] += n
+
+    extract_words(tree, 1)
+    
+    word_leaves = [ 1.0 * w[1] / depthSize['count'] * glvvec(w[0]) for w in words if w[0] in GLOVE_VOCAB]
+    return word_leaves
+
+def compare_glv_trees(t1, t2):
+    ''' Emits a vector of features for the difference of words, discriminated on POS tag.'''
+    features = {}
+    leaves1 = weighted_glv(t1)
+    leaves2 = weighted_glv(t2)
+    diff = np.mean(leaves1) - np.mean(leaves2)
+    print np.shape(diff)
+    for i in range(np.shape(diff)[0]):
+        features['glv_dim_diff'] = diff[i]
+    return features
 
 def word_overlap_features(t1, t2):
     overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
@@ -236,12 +287,26 @@ def subphrase_generator(tree):
     return phrases
 
 # When a phrase in t2 contains a phrase in t1, count it.
-# TODO: Test this, and compare it against summing for v IN p2.
+# TODO: Compare this to a phrase share feature that implements selective
+# deletion of subphrases as a form of the dialogue heuristic.  
 def phrase_share_feature(t1, t2):
     p1, p2 = subphrase_generator(t1), subphrase_generator(t2)
     shared = [str((v, w)) for v in p1 for w in p2 if v == w]
+    
     return Counter(shared)
 
+def phrase_dialogue_feature(t1, t2):
+    p1, p2 = subphrase_generator(t1), subphrase_generator(t2)
+    p_leaves, q_leaves = [leaves(p) for p in p1], [leaves(q) for q in p2]
+    for i in range(len(p_leaves)):
+        ptree = p1[i]
+        for j in range(len(q_leaves)):
+            # TODO: selective subphrase deletion.  If the nouns or verbs are
+            # similar enough (i.e. synset overlap), then look for
+            # same-level deletion subphrases and mark them as a feature.
+            qtree = p2[j]
+            pass
+            
 common_hyp_counter = 0
 def phrase_common_hyp(t1, t2):
     ''' Checks for lowest common ancestor between two words in a phrase. '''
@@ -510,12 +575,14 @@ def get_noun_phrase_mapping(np1, np2):
 
     return np1_token_mapping, np2_token_mapping
 
+npm_counter = 0
 def noun_phrase_modifier_features(t1, t2):
     """Extracts noun phrases within sentences and identifies
     whether a noun phrase in second sentence is subsumed by first."""
     feat = []
+    global npm_counter
     np1, np2 = get_noun_phrase_labeled(t1, t2)
-
+    # TODO: get compositionality statistics, and see if they are sparse or not.
     np1_token_mapping, np2_token_mapping = get_noun_phrase_mapping(np1, np2)
 
     for tok1 in np1_token_mapping.keys():
@@ -527,7 +594,9 @@ def noun_phrase_modifier_features(t1, t2):
                 np2_pos = [tok[1] for tok in sent2_entities]
                 feature_key = ",".join(np1_pos) + ":" + ",".join(np2_pos)
                 feat += [feature_key]
-
+                npm_counter += 1
+                
+    print npm_counter
     return Counter(feat)
 
 def get_noun_phrase_vector(noun_phrase):
@@ -587,7 +656,8 @@ features_mapping = {'word_cross_product': word_cross_product_features,
     'bigram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=2),
     'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
     'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4),
-    'phrase_share' : phrase_share_feature
+    'phrase_share' : phrase_share_feature,
+    'glv_diff': compare_glv_trees
              }
     
 def featurizer(reader=sick_train_reader, features_funcs=None):
