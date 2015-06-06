@@ -26,9 +26,9 @@ def run(args):
     model, feat_vec, labels = train_model(params)
     load, params['load_vectors'] = params['load_vectors'], True
    
-    test_model(params, model, feat_vec, labels, data_set = 'train')
+    test_model(params, model, feat_vec, labels, data_set = 'train_dev')
     params['load_vectors'] = load
-    test_model(params, model, feat_vec, labels, data_set = 'dev')
+    test_model(params, model, feat_vec, labels, data_set = 'test')
     prettyPrint("-" * 80, color.YELLOW)
     
 def set_config(config_file):
@@ -59,7 +59,7 @@ def train_model(params):
     prettyPrint("-" * 80 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
     prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
     start_train = time.time()
-    model, feat_vec, labels = build_model(clf = params['model'], features = params['features'], file_name = params['feature_file'] + ".train",
+    model, feat_vec, labels = build_model(clf = params['model'], train_reader = sick_train_dev_reader, features = params['features'], file_name = params['feature_file'] + ".train_dev",
 									  load_vec = params['load_vectors'], feature_selector = SelectKBest(chi2, k = 'all'))
     
     best_model = parameter_tune(params['model'], model, feat_vec, labels, grid = params['param_grid'])

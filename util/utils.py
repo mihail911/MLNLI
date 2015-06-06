@@ -53,3 +53,6 @@ def sick_dev_reader():
 
 def sick_test_reader():
     return sick_reader(src_filename=data_dir+"SICK_test_parsed.txt", semafor_filename=data_dir+"semafor_test.xml")
+
+def sick_train_dev_reader():
+    return sick_reader(src_filename=data_dir+"SICK_train+dev_parsed.txt", semafor_filename=data_dir+"semafor_test.xml")
