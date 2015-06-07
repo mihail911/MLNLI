@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
-from util.utils import sick_train_reader, sick_dev_reader, sick_train_dev_reader
+from util.utils import sick_train_reader, sick_dev_reader, sick_train_dev_reader, sick_test_reader
 from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
@@ -139,6 +139,8 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
         reader_name = 'Dev'
     elif reader == sick_train_reader:
         reader_name = 'Train + Dev'
+    elif reader == sick_test_reader:
+        reader_name = 'Test'
     else:
         reader_name = 'Train'
 
@@ -160,6 +162,9 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
         reader = sick_train_reader
         file_name += ".train"
         prettyColor = color.CYAN
+    else:
+        reader = sick_test_reader
+        file_name += ".test"
     feat_vec, gold_labels = obtain_vectors(file_name, load_vec, reader, features)
     
     predicted_labels = pipeline.predict(feat_vec)
