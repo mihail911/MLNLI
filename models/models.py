@@ -163,5 +163,5 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     feat_vec, gold_labels = obtain_vectors(file_name, load_vec, reader, features)
     
     predicted_labels = pipeline.predict(feat_vec)
-    prettyPrint( metrics.classification_report(gold_labels, predicted_labels), prettyColor)
+    prettyPrint( metrics.classification_report(gold_labels, predicted_labels, digits = 5), prettyColor)
 

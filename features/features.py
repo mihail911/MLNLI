@@ -25,25 +25,37 @@ from util.distributedwordreps import build, cosine
 
 lemmatizer = WordNetLemmatizer()
 
-GLOVE_MAT, GLOVE_VOCAB = np.zeros(1), np.zeros(1)
+_glv_dim = 50
+GLOVE_MAT, GLOVE_VOCAB = np.zeros(_glv_dim), np.zeros(_glv_dim)
+
+GLV_CACHE = {}
 
 def glvvec(w):
 
     """Return the GloVe vector for w."""
-
+    global GLOVE_MAT, GLOVE_VOCAB, GLV_CACHE
+    if w in GLV_CACHE:
+        return GLV_CACHE[w]
     if not GLOVE_MAT.any():
         init_glv()
-    i = GLOVE_VOCAB.index(w)
-    return GLOVE_MAT[i]
+
+    try:
+        i = GLOVE_VOCAB.index(w)
+        GLV_CACHE[w] = GLOVE_MAT[i]
+        
+    except ValueError:
+        GLV_CACHE[w] = np.zeros(_glv_dim)
+
+    return GLV_CACHE[w]
 
 def init_glv():
-    
-    global GLOVE_MAT
+
+    global GLOVE_MAT, GLOVE_VOCAB
     if GLOVE_MAT.any():
         return
     ''' Lazily initializes GloVe vectors if they don't already exist '''
     prettyPrint("Building GloVe vectors: ", color.CYAN)
-    GLOVE_MAT, GLOVE_VOCAB, _ = build(root_dir + '/nli-data/glove.6B.50d.txt', delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
+    GLOVE_MAT, GLOVE_VOCAB, _ = build(root_dir + '/nli-data/glove.6B.{0}d.txt'.format(_glv_dim), delimiter=' ', header=False, quoting=csv.QUOTE_NONE)
     prettyPrint("Loaded vectors, dimension {0} ".format(np.shape(GLOVE_MAT)[1]), color.CYAN)
 
 def weighted_glv(tree):
@@ -52,8 +64,9 @@ def weighted_glv(tree):
         are more so the "basis of meaning" for the sentence
         so we weigh it more.  
     '''
-
+    #global GLOVE_MAT, GLOVE_VOCAB
     init_glv()
+
     words = []      # (word, height in tree)
     depthSize = {}  # L1 norm of tree depths
     depthSize['count'] = 0
@@ -68,8 +81,8 @@ def weighted_glv(tree):
                 depthSize['count'] += n
 
     extract_words(tree, 1)
-    
-    word_leaves = [ 1.0 * w[1] / depthSize['count'] * glvvec(w[0]) for w in words if w[0] in GLOVE_VOCAB]
+
+    word_leaves = [ 1.0 * w[1] / depthSize['count'] * glvvec(w[0]) for w in words if glvvec(w[0]).any()]
     return word_leaves
 
 def compare_glv_trees(t1, t2):
@@ -77,12 +90,84 @@ def compare_glv_trees(t1, t2):
     features = {}
     leaves1 = weighted_glv(t1)
     leaves2 = weighted_glv(t2)
-    diff = np.mean(leaves1) - np.mean(leaves2)
-    print np.shape(diff)
+    # Normalize to [0, inf) for chi-squared test
+    diff = np.exp(np.mean(leaves1, axis = 0) - np.mean(leaves2, axis = 0))
+
     for i in range(np.shape(diff)[0]):
-        features['glv_dim_diff'] = diff[i]
+        features['glv_dim_diff' + str(i)] = diff[i]
     return features
 
+def safe_cos(u, v):
+    ''' Prevents overflow possible with scipy's cosine.  Assumes an array-like input u, v.'''
+    if not u.any() or not v.any():
+        return 0.0
+    ''' Small constant added to avoid double imprecision (less than 2^-54)
+        that can give small negative outputs, and cause statistical
+        measures for feature selection to fail '''  
+    return cosine(u, v) + 1e-12
+
+def glv_cosine(t1, t2):
+    ''' Computes the word-wise feature difference via cosine, delineated by tree depth.'''
+    features = {}
+    for word in leaves(t1):
+        h1 = word_depth(word, t1)
+        for token in leaves(t2):
+            h2 = word_depth(token, t2)
+            # Weight by tree compositionality (depth)
+            dist = safe_cos (glvvec(word), glvvec(token))
+            if dist < 0.:
+                print "ERR: distance less than 0: ", dist
+                
+            features["glv_depth {0} {1}".format(h1, h2)] = dist 
+    return features
+
+def glv_window_overlap(t1, t2, n = 5):
+    ''' Looks for an alignment within the window between sentences
+        (non-overlapping within the sentence) and words
+        with compatible lemmas POS.  Emits features regarding the distance between common words, and
+        finds the glv vector difference between pos-tag aligned words,
+        inversely weighted by sentence distance. '''
+        
+    ''' Looks within a window of influence around word matches for context, and compares the glove 
+        vectors within the (n - 1) gram context.  Produces dim * (n - 1) dense features.'''
+
+    features = Counter()
+    v_tagged = pos_tag(leaves(t1))
+    w_tagged = pos_tag(leaves(t2))
+
+    for v in ntuples(v_tagged, n):
+        for w in ntuples(w_tagged, n):
+            # Find alignment
+            alignments = find_exact_alignments(v, w)
+            for i, j in alignments:
+                ''' Featurize the word alignment in the window '''  
+                features[v[i][0] + str(i - j) ] += 1
+            if not alignments:
+                continue
+            else:
+                similar_align = find_tagged_alignments(v, w, alignments)
+                for i, j in similar_align:
+                    word_diff = np.exp ( glvvec( v[i][0]) - glvvec( w[j][0]) ) 
+                    
+                    for dim in range(word_diff.shape[0]): 
+                        features[ v[i][1] + ' aligned dim ' +  str(dim)] += word_diff[dim]
+
+    return features
+                
+
+def find_exact_alignments(p, q):
+    ''' Finds word-based alignments between the phrases.
+        Returns a list of (p_index, q_index) pairs of the matches. '''
+    return [(i, q.index(tw)) for i, tw in enumerate(p) if tw in q]
+
+def find_tagged_alignments(p, q, excluded):
+    ''' Given a tagged n-gram, gives alignment for words of the same
+        part of speech* that are not already excluded.
+
+        The POS tag matching is done coarsely.  '''
+    return [(i, j) for i, tw in enumerate(p) for j, tu in enumerate(q)
+             if pos_tags_equal(tw[1], tu[1]) and (i, j) not in excluded]
+    
 def word_overlap_features(t1, t2):
     overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
     feat = Counter(overlap)
@@ -93,6 +178,11 @@ def word_overlap_features(t1, t2):
 
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
+
+def ntuples(arr, n = 2):
+    ''' Generator function for subarrays.  Centers never overlap. '''
+    for i in range(0, len(arr) - n, n - 1):
+        yield arr[i:i+n]
 
 def gen_ngrams(s, n = 2):
     ''' Generator function for ngrams in a sentence represented as a list
@@ -143,7 +233,7 @@ def word_depth(word, t):
         return -1
     
     depth = 0
-    word_ind = structured_sent.index('\'' + word + '\'')
+    word_ind = structured_sent.index(word)
     for c in structured_sent[:word_ind]:
         if c == '(':
             depth += 1
@@ -186,6 +276,15 @@ def penn2wn(tag):
         ind = 'JVNR'.index(tag[0]) # Starts with (AD)J, V(ERB), N(OUN), (ADVE)R(B)
         return 'avnr'[ind]
     return ''
+
+def pos_tags_equal(t, u, strategy = 'coarse'):
+    ''' Based off of strategy, compares the two pos tags. '''
+    if strategy == 'exact':
+       return u == t
+    elif strategy == 'coarse':
+       return u[0] == t[0]
+    else:
+       return False
 
 def extract_nouns(sent):
     """Extracts nouns in a given sentence."""
@@ -232,24 +331,44 @@ def noun_synset_dict(sent):
         synsets[noun] = wn.synsets(noun, pos=wn.NOUN)
     return synsets
 
-def extract_adj_lemmas(sent):
+def extract_lemmas(sent):
     """Extracts all adjectives in a given sentence"""
     lemmas = []
     tokens = word_tokenize(sent)
     pos_tagged = pos_tag(tokens)
     for word in pos_tagged:
-        if word[1] in ['JJ', 'JJR', 'JJS']:
-            lemmas.extend(wn.lemmas(word[0], wn.ADJ))
+        lemmas.extend(wn.lemmas(word[0]))
     return lemmas
 
 def extract_adj_antonyms(sent):
     """Return list of all antonym lemmas for nouns in a given sentence"""
     antonyms = []
-    all_adj_lemmas = extract_adj_lemmas(sent)
-    for lemma in all_adj_lemmas:
+    all_lemmas = extract_lemmas(sent)
+    for lemma in all_lemmas:
         antonyms.extend(lemma.antonyms())
     return antonyms
 
+
+def synset_similarity(t1, t2):
+    ''' Returns the closest similarity between sentences.
+        TODO: Match this similarity with the number of overlap matches.  '''
+    l1, l2 = leaves(t1), leaves(t2)
+    # Get rid of all the matching words
+    overlap_size = len([w for w in l1 if w in l2])
+    
+    l1 = [w for w in l1 if w not in l2]
+    total_dist = 0.0
+    for word in l1:
+        syns = wn.synsets(word)
+        for word in l2:
+            syns2 = wn.synsets(word)
+            avg_dist = min([0.0] + [s.path_similarity(t) for s in syns for t in syns2]) 
+            if avg_dist:
+                total_dist += avg_dist
+    total_dist /= (len(l1) + 1)
+    featureBin = total_dist / 0.001
+    return {'synset_similarity sz {0} {1}'.format(overlap_size, featureBin) : 1.0}   
+    
 def synset_overlap_features(t1, t2):
     """Returns counter for all mutual synsets between two sentences."""
     sent1, sent2 = tree2sent(t1, t2)
@@ -363,7 +482,7 @@ def phrase_common_hyp(t1, t2):
     for v, w in hyp_cache:
         common_phrases = [(p, q) for p in p1 for q in p2 if v in p and w in q]
         for p, q in common_phrases:
-            features["com_hyp: {0} {1}".format(p, q)] = 1.0
+            features["cgom_hyp: {0} {1}".format(p, q)] = 1.0
             common_hyp_counter += 1
     
     return features
@@ -431,10 +550,10 @@ def hypernym_features(t1, t2):
 def antonym_features(t1, t2):
 
     """Use antonyms between sentences to recognize contradiction patterns. TODO: Extract antonyms from nouns and other syntactic families as well!"""
-
+    
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
-    sent2_lemmas = extract_adj_lemmas(sent2)
+    sent2_lemmas = extract_lemmas(sent2)
     sent1_antonyms = extract_adj_antonyms(sent1)
     antonyms = [str(lem) for lem in sent1_antonyms if lem in sent2_lemmas]
     return Counter(antonyms)
@@ -635,6 +754,7 @@ def noun_phrase_word_vec_features(t1, t2):
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
+            'synset_similarity' : synset_similarity,
             'hypernyms' : hypernym_features,
             'new_hyp' : general_hypernym,
             'common_hypernym': phrase_common_hyp,
@@ -657,7 +777,9 @@ features_mapping = {'word_cross_product': word_cross_product_features,
     'trigram_word_overlap': lambda t1, t2: gram_overlap(t1, t2, n=3),
     'quadgram_word_overlap' : lambda t1, t2: gram_overlap(t1, t2, n=4),
     'phrase_share' : phrase_share_feature,
-    'glv_diff': compare_glv_trees
+    'glv_diff': compare_glv_trees,
+    'glv_cos' : glv_cosine,
+    'glv_overlap': lambda t1, t2: glv_window_overlap(t1, t2, n=3)
              }
     
 def featurizer(reader=sick_train_reader, features_funcs=None):
