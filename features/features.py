@@ -331,24 +331,44 @@ def noun_synset_dict(sent):
         synsets[noun] = wn.synsets(noun, pos=wn.NOUN)
     return synsets
 
-def extract_adj_lemmas(sent):
+def extract_lemmas(sent):
     """Extracts all adjectives in a given sentence"""
     lemmas = []
     tokens = word_tokenize(sent)
     pos_tagged = pos_tag(tokens)
     for word in pos_tagged:
-        if word[1] in ['JJ', 'JJR', 'JJS']:
-            lemmas.extend(wn.lemmas(word[0], wn.ADJ))
+        lemmas.extend(wn.lemmas(word[0]))
     return lemmas
 
 def extract_adj_antonyms(sent):
     """Return list of all antonym lemmas for nouns in a given sentence"""
     antonyms = []
-    all_adj_lemmas = extract_adj_lemmas(sent)
-    for lemma in all_adj_lemmas:
+    all_lemmas = extract_lemmas(sent)
+    for lemma in all_lemmas:
         antonyms.extend(lemma.antonyms())
     return antonyms
 
+
+def synset_similarity(t1, t2):
+    ''' Returns the closest similarity between sentences.
+        TODO: Match this similarity with the number of overlap matches.  '''
+    l1, l2 = leaves(t1), leaves(t2)
+    # Get rid of all the matching words
+    overlap_size = len([w for w in l1 if w in l2])
+    
+    l1 = [w for w in l1 if w not in l2]
+    total_dist = 0.0
+    for word in l1:
+        syns = wn.synsets(word)
+        for word in l2:
+            syns2 = wn.synsets(word)
+            avg_dist = min([0.0] + [s.path_similarity(t) for s in syns for t in syns2]) 
+            if avg_dist:
+                total_dist += avg_dist
+    total_dist /= (len(l1) + 1)
+    featureBin = total_dist / 0.001
+    return {'synset_similarity sz {0} {1}'.format(overlap_size, featureBin) : 1.0}   
+    
 def synset_overlap_features(t1, t2):
     """Returns counter for all mutual synsets between two sentences."""
     sent1, sent2 = tree2sent(t1, t2)
@@ -462,7 +482,7 @@ def phrase_common_hyp(t1, t2):
     for v, w in hyp_cache:
         common_phrases = [(p, q) for p in p1 for q in p2 if v in p and w in q]
         for p, q in common_phrases:
-            features["com_hyp: {0} {1}".format(p, q)] = 1.0
+            features["cgom_hyp: {0} {1}".format(p, q)] = 1.0
             common_hyp_counter += 1
     
     return features
@@ -530,10 +550,10 @@ def hypernym_features(t1, t2):
 def antonym_features(t1, t2):
 
     """Use antonyms between sentences to recognize contradiction patterns. TODO: Extract antonyms from nouns and other syntactic families as well!"""
-
+    
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
-    sent2_lemmas = extract_adj_lemmas(sent2)
+    sent2_lemmas = extract_lemmas(sent2)
     sent1_antonyms = extract_adj_antonyms(sent1)
     antonyms = [str(lem) for lem in sent1_antonyms if lem in sent2_lemmas]
     return Counter(antonyms)
@@ -734,6 +754,7 @@ def noun_phrase_word_vec_features(t1, t2):
 features_mapping = {'word_cross_product': word_cross_product_features,
             'word_overlap': word_overlap_features,
             'synset_overlap' : synset_overlap_features,
+            'synset_similarity' : synset_similarity,
             'hypernyms' : hypernym_features,
             'new_hyp' : general_hypernym,
             'common_hypernym': phrase_common_hyp,
@@ -759,7 +780,6 @@ features_mapping = {'word_cross_product': word_cross_product_features,
     'glv_diff': compare_glv_trees,
     'glv_cos' : glv_cosine,
     'glv_overlap': lambda t1, t2: glv_window_overlap(t1, t2, n=3)
-    
              }
     
 def featurizer(reader=sick_train_reader, features_funcs=None):
