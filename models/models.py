@@ -17,7 +17,7 @@ from features.features import word_cross_product_features, word_overlap_features
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
@@ -27,11 +27,13 @@ from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
 _models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'entropy', n_jobs = -1),
+           "extra_tree" : ExtraTreesClassifier(n_estimators = 100, criterion = 'entropy', n_jobs = -1, max_features = None,
+                                              max_depth = 200), 
            "log_reg" : LogisticRegression(), 
            "svm" : SVC(kernel='linear'),
            "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True),
            "linear" : SGDClassifier(loss = 'hinge', alpha = 0.001, n_jobs= -1)
-           # n_jobs = -1 is necessary for an sgdclassifier
+           
 
            }
 
