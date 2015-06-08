@@ -14,7 +14,7 @@ import cPickle as pickle
 import time
 
 from features.features import word_cross_product_features, word_overlap_features, hypernym_features, featurizer
-from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
+from sklearn.feature_selection import SelectFpr, chi2, SelectKBest, RFE
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
@@ -103,6 +103,10 @@ def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vecto
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
     ''' Builds the model of choice. ''' 
     global _models
+    ''' Putting RFE in the pipeline '''
+    feature_selector = RFE( LogisticRegression(solver='lbfgs'),
+                             n_features_to_select = 5000,
+                             step = 0.05)
     
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
                         ('clf', _models[clf])])
