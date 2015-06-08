@@ -550,14 +550,21 @@ def hypernym_features(t1, t2):
 def antonym_features(t1, t2):
 
     """Use antonyms between sentences to recognize contradiction patterns. TODO: Extract antonyms from nouns and other syntactic families as well!"""
+    feature = {}
     
     sent1 = ' '.join(leaves(t1))
     sent2 = ' '.join(leaves(t2))
     sent2_lemmas = extract_lemmas(sent2)
     sent1_antonyms = extract_adj_antonyms(sent1)
     antonyms = [str(lem) for lem in sent1_antonyms if lem in sent2_lemmas]
-    return Counter(antonyms)
+    num_antonyms = len(antonyms)
 
+    overlap_size = sum (1 for w in leaves(t1) if w in leaves(t2))
+    sent_length = len(leaves(t1) + leaves(t2))
+    ratio = overlap_size * 1.0 / sent_length
+    feature['antonym with similarity {0}'.format(int(ratio / 0.2))] = num_antonyms
+    return feature
+    
 def word_cross_product_features(t1, t2):
     return Counter([(w1, w2) for w1, w2 in itertools.product(leaves(t1), leaves(t2))])
 
