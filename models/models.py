@@ -103,11 +103,11 @@ def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vecto
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
     ''' Builds the model of choice. ''' 
     global _models
-    ''' Putting RFE in the pipeline '''
+    ''' Putting RFE in the pipeline 
     feature_selector = RFE( LogisticRegression(solver='lbfgs'),
                              n_features_to_select = 5000,
                              step = 0.05)
-    
+    '''
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
                         ('clf', _models[clf])])
     feat_vec, labels = obtain_vectors(file_name, load_vec, train_reader, features)

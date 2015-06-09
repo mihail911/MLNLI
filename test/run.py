@@ -26,10 +26,10 @@ def run(args):
     params = set_config(args.conf)
     model, feat_vec, labels = train_model(params)
     load, params['load_vectors'] = params['load_vectors'], True
-   
-    test_model(params, model, feat_vec, labels, data_set = 'train_dev')
+    
+    test_model(params, 'train', model, feat_vec, labels)
     params['load_vectors'] = load
-    test_model(params, model, feat_vec, labels, data_set = 'test')
+    test_model(params, 'dev', model, feat_vec, labels)
     prettyPrint("-" * 80, color.YELLOW)
     
 def set_config(config_file):
@@ -70,9 +70,10 @@ def train_model(params):
     
     return best_model, feat_vec, labels
 
-def test_model (params, best_model, feat_vec, labels, data_set = 'train'):
+def test_model (params = None, data_set = 'train', best_model = None, feat_vec = None, labels = None):
     ''' Tests a trained model. '''
-    
+
+    prettyPrint("Testing on data set: {0}".format(data_set), color.YELLOW)
     evaluate_model(best_model, reader = 'sick_{0}_reader'.format(data_set),
                     features = params['features'],
                     file_name = params['feature_file'],

@@ -171,9 +171,11 @@ def find_tagged_alignments(p, q, excluded):
 def word_overlap_features(t1, t2):
     overlap = [w1 for w1 in leaves(t1) if w1 in leaves(t2)]
     feat = Counter(overlap)
+    
     feat['overlap_length'] = len(overlap)
     feat['one_not_two_length'] = len([w1 for w1 in leaves(t1) if w1 not in leaves(t2)])
     feat['two_not_one_length'] = len([w2 for w2 in leaves(t2) if w2 not in leaves(t1)])
+    
     return feat
 
 def word_cross_product_features(t1, t2):
@@ -194,9 +196,14 @@ def gen_ngrams(s, n = 2):
 def gram_overlap(t1, t2, n = 2):
    
     s1, s2 = leaves(t1), leaves(t2)
-    gram_overlap = [g1 for g1 in gen_ngrams(s1, n)
-                    for g2 in gen_ngrams(s2, n) if g1 == g2]
-    return Counter(gram_overlap) 
+    gen_1, gen_2 = [g for g in gen_ngrams(s1, n)], [g for g in gen_ngrams(s2, n0)]
+    gram_overlap = [g1 for g1 in gen_1
+                    for g2 in gen_2 if g1 == g2]
+    features = Counter(gram_overlap) 
+
+    feat['{0}gram_one_not_two_length'.format(n)] = len(s1) - len(gram_overlap)
+    feat['{0}gram_two_not_one_length'.format(n)] = len(s2) - len(gram_overlap)
+                                                        
     
        
 def gram_cross_product(t1, t2, n = 2):
