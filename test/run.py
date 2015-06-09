@@ -29,7 +29,7 @@ def run(args):
     
     test_model(params, 'train', model, feat_vec, labels)
     params['load_vectors'] = load
-    test_model(params, 'test', model, feat_vec, labels)
+    test_model(params, 'dev', model, feat_vec, labels)
     prettyPrint("-" * 80, color.YELLOW)
     
 def set_config(config_file):
@@ -50,7 +50,7 @@ def set_config(config_file):
         # Special-case parsing of arguments
         params['load_vectors'] = True if params['load_vectors'].lower() == 'true' else False 
         print params
-        print 'Configuration file used: ' + arguments.conf
+        print 'Configuration file used: ' + config_file
     return params
 
 def train_model(params):
@@ -60,8 +60,12 @@ def train_model(params):
     prettyPrint("-" * 80 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
     prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
     start_train = time.time()
-    model, feat_vec, labels = build_model(clf = params['model'], train_reader = sick_train_dev_reader, features = params['features'], file_name = params['feature_file'] + ".train_dev",
-									  load_vec = params['load_vectors'], feature_selector = SelectKBest(chi2, k = 'all'))
+    model, feat_vec, labels = build_model(clf = params['model'],
+                                          train_reader = sick_train_reader,
+                                          features = params['features'],
+                                          file_name = params['feature_file'] + ".train",
+                                          load_vec = params['load_vectors'],
+                                          feature_selector = SelectKBest(chi2, k = 'all'))
     
     best_model = parameter_tune(params['model'], model, feat_vec, labels, grid = params['param_grid'])
 
