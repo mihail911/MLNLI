@@ -29,7 +29,7 @@ def run(args):
     
     test_model(params, 'train', model, feat_vec, labels)
     params['load_vectors'] = load
-    test_model(params, 'dev', model, feat_vec, labels)
+    test_model(params, 'test', model, feat_vec, labels)
     prettyPrint("-" * 80, color.YELLOW)
     
 def set_config(config_file):
@@ -72,7 +72,7 @@ def train_model(params):
 
 def test_model (params = None, data_set = 'train', best_model = None, feat_vec = None, labels = None):
     ''' Tests a trained model. '''
-
+    
     prettyPrint("Testing on data set: {0}".format(data_set), color.YELLOW)
     evaluate_model(best_model, reader = 'sick_{0}_reader'.format(data_set),
                     features = params['features'],
