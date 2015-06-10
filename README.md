@@ -17,8 +17,9 @@ Preparing the Codebase
 
 Configuration File Guide
 --------------------------
-There are six flags in a configuration file `.conf`, which can be specified in any order. 
-    * `model:` specifies the learning model to use.
+
+* There are six flags in a configuration file `.conf`, which can be specified in any order. 
+    *  `model`: specifies the learning model to use.
     		- Naive Bayes:		    `naive-bayes`
 	       	- Logistic Regression: 	    `log_reg`
 	       	- Support Vector Machine:    `svm`
@@ -27,8 +28,9 @@ There are six flags in a configuration file `.conf`, which can be specified in a
 	       
     * `features:` specifies the features to extract from the data.  The current list of features templates can
          be seen by running the script `python test/list_features.py`.    
-    * `feature_file:` specifies the name of the feature file to be generated. The feature vectors and labels will be stored as
-      [feature_file].[`train` | `dev`].[`features` | `labels`].
+    * `feature_file:` specifies the name of the feature file to be generated. The 
+    	feature vectors and labels will be 	stored as
+      	[feature_file].[`train` | `dev`].[`features` | `labels`].
     * `load_vectors:` [Optional] Indicates whether to use featurized
          vectors and classification labels already stored on disk in
          the given filename.  If load_vectors is set to True, then feature
@@ -38,10 +40,13 @@ There are six flags in a configuration file `.conf`, which can be specified in a
     * `plot` [Optional] : If set to `true`, the classifier will train on a 2-D
          projection of the selected feature set, and the output will be a
          plot of the decision boundary learned, saved in output/plot.png.
-    * `param_grid` [Optional]: Gives a range of hyperparameters for the pipeline to optimize over.  If not given, the default 
-         optimization grid at the top of features/features.py for the given model will be used.  The expected argument is a 
-         python dictionary, with iterables as values (i.e. numpy.arange may be used). 
-       	 If only one combination of parameter options is given, then the model will fit the singular parameter set, and skip		 cross-validation.  This greatly increases the speed of obtaining results. 
+    * `param_grid` [Optional]: Gives a range of hyperparameters for the pipeline to optimize over.  
+    	If not given, the default optimization grid at the top of features/features.py for 
+    	the given model will be used.  The expected argument is a python dictionary, with iterables 
+    	as values (i.e. numpy.arange may be used). 
+       	If only one combination of parameter options is given, then the model will fit the singular 
+       	parameter set, and skip	cross-validation.  This greatly increases the speed of obtaining results. 
+	
 
 Feature sets are saved by default in output/.  
 
@@ -63,7 +68,10 @@ Testing Tools
 Known Platform / Version Dependencies:
 --------------------------------------
 * sklearn > 0.16.  This allows LogisticRegression() to be used with the L-BFGS solver, which is more precise than the standard   linear solver.  If running below sklearn 0.16, recursive feature selection will not work.  So just install 0.16 :)
-* OS X only: The default OS X Accelerate Framework does not support calls to Grand Central Dispatch (GCD) on both sides of a    fork(), so Python's multiprocessing implementation, used to speed up grid search and cross-validation, will crash.  Two       possible workarounds:
+* OS X only: The default OS X Accelerate Framework does not support calls to Grand Central Dispatch (GCD) on both sides of 
+  a fork(), so Python's multiprocessing implementation, used to speed up grid search and cross-validation, will crash.  
+  Two possible workarounds:
 	- Install numpy and scipy linked against ATLAS / OpenBLAS / MKL, which do not have this programmatic restriction.
-	- In params_grid, specify the argument `clf__n_jobs` : [1] if the classifier can be parallelized, and ensure that the           grid you pass in encompasses a singular set of parameter values. 
+	- In params_grid, specify the argument `clf__n_jobs` : [1] if the classifier can be parallelized, and ensure 
+	- that the grid you pass in encompasses a singular set of parameter values. 
 * Recommended minimum system specs: Intel i5 or higher, 4+ cores, > 2GB RAM free.  
