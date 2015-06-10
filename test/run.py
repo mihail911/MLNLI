@@ -29,10 +29,10 @@ def run(args):
     
     load, params['load_vectors'] = params['load_vectors'], True
     
-    test_model(params, 'train', model, feat_vec, labels)
+    test_model(params, 'train_dev', model, feat_vec, labels)
     params['load_vectors'] = load
 
-    test_model(params, 'dev', model, feat_vec, labels)
+    test_model(params, 'test', model, feat_vec, labels)
     prettyPrint("-" * 80, color.YELLOW)
     
 def set_config(config_file):
@@ -69,7 +69,7 @@ def train_model(params):
     model, feat_vec, labels = build_model(clf = params['model'],
                                           train_reader = sick_train_reader,
                                           features = params['features'],
-                                          file_name = params['feature_file'] + ".train",
+                                          file_name = params['feature_file'] + ".train_dev",
                                           load_vec = params['load_vectors'],
                                           feature_selector = SelectKBest(chi2, k = 'all'),
                                           compression = compression)
@@ -81,7 +81,7 @@ def train_model(params):
     
     return best_model, feat_vec, labels
 
-def test_model (params = None, data_set = 'dev', best_model = None, feat_vec = None, labels = None):
+def test_model (params = None, data_set = 'test', best_model = None, feat_vec = None, labels = None):
     ''' Tests a trained model, or plots it if the params[plot] flag is set '''
     if params['plot'] and data_set != 'train':
         prettyPrint("Generating decision boundary graph ...", color.YELLOW)
