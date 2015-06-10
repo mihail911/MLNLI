@@ -25,6 +25,7 @@ from util.utils import sick_train_reader, sick_dev_reader, sick_train_dev_reader
 from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
+from sklearn.decomposition import TruncatedSVD
 
 _models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'entropy', n_jobs = -1),
            "extra_tree" : ExtraTreesClassifier(n_estimators = 100, criterion = 'entropy', n_jobs = -1, max_features = None,
@@ -32,9 +33,9 @@ _models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'ent
            "log_reg" : LogisticRegression(), 
            "svm" : SVC(kernel='linear'),
            "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True),
-           "linear" : SGDClassifier(loss = 'hinge', alpha = 0.001, n_jobs= -1)
+           "linear" : SGDClassifier(loss = 'hinge', alpha = 0.001, n_jobs= -1),
            
-
+           "lsa" : TruncatedSVD(n_components = 2, algorithm = 'arpack')
            }
 
 _param_grid = { "forest" : {},
@@ -100,18 +101,29 @@ def obtain_vectors(file_extension = None, load_vec = True, reader = None, featur
     return feat_vec, labels
 
 def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vectorizer = DictVectorizer(sparse = True), 
-                             features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
+                features = None, feature_selector = SelectFpr(chi2, alpha = 0.05),
+                file_name = None, load_vec = None,
+                compression = None):
     ''' Builds the model of choice. ''' 
     global _models
-    
+
+    clf_pipe = None
     '''
     Putting RFE in the pipeline 
     feature_selector = RFE( LogisticRegression(solver='lbfgs'),
                              n_features_to_select = 5000,
                              step = 0.05)
     '''
-    clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
-                        ('clf', _models[clf])])
+ 
+    if compression:
+        clf_pipe = Pipeline([('dict_vector', feature_vectorizer),
+                            ('feature_selector', feature_selector),
+                            ('compression', _models[compression]), ('clf', _models[clf])])
+    else:
+        clf_pipe = Pipeline([('dict_vector', feature_vectorizer),
+                            ('feature_selector', feature_selector),
+                            ('clf', _models[clf])])
+
     feat_vec, labels = obtain_vectors(file_name, load_vec, train_reader, features)
     
     return clf_pipe, feat_vec, labels

@@ -15,6 +15,7 @@ import logging
 from models.models import *
 from argparse import ArgumentParser
 from util.colors import color, prettyPrint
+from util import boundaryplot as bp
 from ast import literal_eval as str2dict
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
 import sklearn
@@ -25,10 +26,12 @@ def run(args):
         command-line invocation.  ''' 
     params = set_config(args.conf)
     model, feat_vec, labels = train_model(params)
+    
     load, params['load_vectors'] = params['load_vectors'], True
     
     test_model(params, 'train', model, feat_vec, labels)
     params['load_vectors'] = load
+
     test_model(params, 'dev', model, feat_vec, labels)
     prettyPrint("-" * 80, color.YELLOW)
     
@@ -48,14 +51,17 @@ def set_config(config_file):
 		
 		params[kv[0]] = val
         # Special-case parsing of arguments
-        params['load_vectors'] = True if params['load_vectors'].lower() == 'true' else False 
-        print params
-        print 'Configuration file used: ' + config_file
+        for arg in ('load_vectors', 'plot'):
+            params[arg] = False if not params[arg] or not params[arg].lower() == 'true' else True
+        prettyPrint( '{0}'.format(params), color.YELLOW)
+        prettyPrint('Configuration file used: ' + config_file, color.YELLOW)
+
     return params
 
 def train_model(params):
     ''' Trains the model, with pretty output.  Returns the model, feature
         vectors, and labels tuple, ready for evaluation. '''
+    compression = 'lsa' if params['plot'] else None # Test change to get rid of LSA
     
     prettyPrint("-" * 80 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
     prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
@@ -65,7 +71,8 @@ def train_model(params):
                                           features = params['features'],
                                           file_name = params['feature_file'] + ".train",
                                           load_vec = params['load_vectors'],
-                                          feature_selector = SelectKBest(chi2, k = 'all'))
+                                          feature_selector = SelectKBest(chi2, k = 'all'),
+                                          compression = compression)
     
     best_model = parameter_tune(params['model'], model, feat_vec, labels, grid = params['param_grid'])
 
@@ -74,10 +81,23 @@ def train_model(params):
     
     return best_model, feat_vec, labels
 
-def test_model (params = None, data_set = 'train', best_model = None, feat_vec = None, labels = None):
-    ''' Tests a trained model. '''
+def test_model (params = None, data_set = 'dev', best_model = None, feat_vec = None, labels = None):
+    ''' Tests a trained model, or plots it if the params[plot] flag is set '''
+    if params['plot'] and data_set != 'train':
+        prettyPrint("Generating decision boundary graph ...", color.YELLOW)
+
+        filename = params['feature_file'] + '.{0}'.format(data_set)
+        feat_vec, labels = obtain_vectors(file_extension = filename,
+                                          load_vec = params['load_vectors'],
+                                          reader = sick_dev_reader,
+                                          features = params['features'])                                         
+        bp.plot_boundary(best_model, feat_vec, labels)
+        prettyPrint("Saved in output/foo.png\n" + "-" * 80, color.YELLOW)
+        return
+    '-----------------'
     
     prettyPrint("Testing on data set: {0}".format(data_set), color.YELLOW)
+    
     evaluate_model(best_model, reader = 'sick_{0}_reader'.format(data_set),
                     features = params['features'],
                     file_name = params['feature_file'],

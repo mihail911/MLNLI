@@ -37,7 +37,7 @@ def single_ablation(params):
     params['feature_file'] = 'wo+' + feature
     params['features'] = ['word_overlap', feature]
     
-    params['param_grid']['feature_selector__k'] = ['all'] # Use all features
+    # params['param_grid']['feature_selector__k'] = ['all'] # Use all features
 
     _console_lock.acquire()
     prettyPrint("Starting job for word overlap + {0}".format(feature), color.YELLOW)

@@ -24,4 +24,4 @@ class color:
 ''' Wrapper for a print statement for color '''
 def prettyPrint(string, col = color.YELLOW):
    sys.stdout.write(col + string + color.END + "\n")
-
+   # print string
