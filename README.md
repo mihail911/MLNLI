@@ -8,7 +8,6 @@ task.  Data resides in the nli-data/ directory.
 * To run the codebase, invoke "python test/run.py --conf [CONF FILENAME]"
 * Maintains all `.conf` files in the root project directory
 
-
 * The format of the `.conf` files is as follows:
     * `model:` specifies the learning model to use.  
       	       - Logistic Regression: 	    `log_reg`
@@ -47,4 +46,3 @@ Feature sets are saved by default in output/.
   Note that ANSI color escape does not work when writing to files.  It is
   recommended that you modify the prettyPrint function in util/colors.py
   to exclude color escaping before running ablation.
-
