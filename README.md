@@ -17,15 +17,14 @@ Preparing the Codebase
 
 Configuration File Guide
 --------------------------
-There are six flags in a configuration file `.conf`, which can be specified in any order.  
-    * `model:` specifies the learning model to use.  
-    
-	       - Naive Bayes:		    `naive-bayes`
-	       - Logistic Regression: 	    `log_reg`
-	       - Support Vector Machine:    `svm`
-	       - Random Forest: 	    `forest`
-	       - Extra Tree Random Forest:  `extra_tree`
-
+There are six flags in a configuration file `.conf`, which can be specified in any order. 
+    * `model:` specifies the learning model to use.
+    		- Naive Bayes:		    `naive-bayes`
+	       	- Logistic Regression: 	    `log_reg`
+	       	- Support Vector Machine:    `svm`
+	       	- Random Forest: 	    `forest`
+	       	- Extra Tree Random Forest:  `extra_tree`
+	       
     * `features:` specifies the features to extract from the data.  The current list of features templates can
          be seen by running the script `python test/list_features.py`.    
     * `feature_file:` specifies the name of the feature file to be generated. The feature vectors and labels will be stored as
@@ -42,8 +41,7 @@ There are six flags in a configuration file `.conf`, which can be specified in a
     * `param_grid` [Optional]: Gives a range of hyperparameters for the pipeline to optimize over.  If not given, the default 
          optimization grid at the top of features/features.py for the given model will be used.  The expected argument is a 
          python dictionary, with iterables as values (i.e. numpy.arange may be used). 
-         
-         If only one combination of parameter options is given, then the model will fit the singular parameter set, and skip		 cross-validation.  This greatly increases the speed of obtaining results. 
+       	 If only one combination of parameter options is given, then the model will fit the singular parameter set, and skip		 cross-validation.  This greatly increases the speed of obtaining results. 
 
 Feature sets are saved by default in output/.  
 
