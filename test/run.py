@@ -61,7 +61,7 @@ def train_model(params):
     prettyPrint("-" * 80 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
     prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
     start_train = time.time()
-    model, feat_vec, labels = build_model(clf = params['model'], train_reader = snli_train_reader, features = params['features'], file_name = params['feature_file'] + ".train_dev",
+    model, feat_vec, labels = build_model(clf = params['model'], train_reader = snli_train_reader, features = params['features'], file_name = params['feature_file'] + ".train",
 									  load_vec = params['load_vectors'], feature_selector = SelectKBest(chi2, k = 'all'))
     
     best_model = parameter_tune(params['model'], model, feat_vec, labels, grid = params['param_grid'])

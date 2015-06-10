@@ -58,6 +58,8 @@ def sick_train_dev_reader():
     return sick_reader(src_filename=data_dir+"SICK_train+dev_parsed.txt", semafor_filename=data_dir+"semafor_traindev.xml")
 
 def snli_reader(src_filename, semafor_filename):
+    print 'reader srf_filename: ', src_filename
+    print 'reader semafor: ', semafor_filename
     frames = frametuples(semafor_filename)
     curr_frame = 0
     for example in csv.reader(file(src_filename), delimiter="\t"):
@@ -68,7 +70,7 @@ def snli_reader(src_filename, semafor_filename):
 
 #Readers for processing SICK datasets
 def snli_train_reader():
-    return snli_reader(src_filename=data_dir+"snli_train.txt", semafor_filename=data_dir+"snli_train_semafor.out")
+    return snli_reader(src_filename=data_dir+"snli_train.txt", semafor_filename=data_dir+"snli_train_semafor.xml")
 
 def snli_dev_reader():
     return snli_reader(src_filename=data_dir+"clean_snli_1.0rc3_dev.txt", semafor_filename=data_dir+"snli_dev_semafor.xml")

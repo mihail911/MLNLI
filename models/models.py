@@ -141,6 +141,8 @@ def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels 
 
 def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = "", load_vec = None):
     """Evaluates the given model on the test data and outputs statistics."""
+    reader_name = 'DEFAULT'
+    print 'Reader: ', reader
     if reader == sick_dev_reader or reader == snli_dev_reader:
         reader_name = 'Dev'
     elif reader == sick_train_dev_reader:

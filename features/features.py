@@ -797,8 +797,10 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
     feats = []
     labels = []
     split_index = None
-
+    count = 0
     for label, t1, t2, sf1, sf2 in reader():
+        if count%100 == 0:
+            print "Number of features processed: ", count
         feat_dict = {} #Stores all features extracted using feature functions
         for feat in features_funcs:
             if feat.startswith('frame'):
@@ -809,4 +811,5 @@ def featurizer(reader=sick_train_reader, features_funcs=None):
 
         feats.append(feat_dict)
         labels.append(label)
+        count += 1
     return (feats, labels)

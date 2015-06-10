@@ -43,7 +43,10 @@ def super_frame_names(frame):
 
 def is_super_frame(f1, f2):
     # is f2 a super frame of f1?
-    if f2.name in super_frame_dict[f1.name]:
-        return True
-    else:
+    try:
+        if f2.name in super_frame_dict[f1.name]:
+            return True
+	else:
+	    return False
+    except KeyError:
         return False
