@@ -36,7 +36,7 @@ def leaves(t):
 data_dir = 'nli-data/'
 
 def sick_reader(src_filename, semafor_filename):
-    frames = frametuples(semafor_filename)
+    frames = frametuples(semafor_filename) #Error here...?
     curr_frame = 0
     for example in csv.reader(file(src_filename), delimiter="\t"):
         label, t1, t2 = example[:3]
@@ -68,11 +68,11 @@ def snli_reader(src_filename, semafor_filename):
 
 #Readers for processing SICK datasets
 def snli_train_reader():
-    return sick_reader(src_filename=data_dir+"snli_train.txt", semafor_filename=data_dir+"snli_train_semafor.out")
+    return snli_reader(src_filename=data_dir+"snli_train.txt", semafor_filename=data_dir+"snli_train_semafor.out")
 
 def snli_dev_reader():
-    return sick_reader(src_filename=data_dir+"clean_snli_1.0rc3_dev.txt", semafor_filename=data_dir+"snli_dev_semafor.xml")
+    return snli_reader(src_filename=data_dir+"clean_snli_1.0rc3_dev.txt", semafor_filename=data_dir+"snli_dev_semafor.xml")
 
 def snli_test_reader():
-    return sick_reader(src_filename=data_dir+"clean_snli_1.0rc3_test.txt", semafor_filename=data_dir+"snli_test_semafor.xml")
+    return snli_reader(src_filename=data_dir+"clean_snli_1.0rc3_test.txt", semafor_filename=data_dir+"snli_test_semafor.xml")
 
