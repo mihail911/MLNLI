@@ -56,3 +56,23 @@ def sick_test_reader():
 
 def sick_train_dev_reader():
     return sick_reader(src_filename=data_dir+"SICK_train+dev_parsed.txt", semafor_filename=data_dir+"semafor_traindev.xml")
+
+def snli_reader(src_filename, semafor_filename):
+    frames = frametuples(semafor_filename)
+    curr_frame = 0
+    for example in csv.reader(file(src_filename), delimiter="\t"):
+        label, t1, t2 = example[:3]
+        if not label.startswith('%'): # Some files use leading % for comments.
+            yield (label, str2tree(t1), str2tree(t2), frames[curr_frame][0], frames[curr_frame][1])
+            curr_frame += 1
+
+#Readers for processing SICK datasets
+def snli_train_reader():
+    return sick_reader(src_filename=data_dir+"snli_train.txt", semafor_filename=data_dir+"snli_train_semafor.out")
+
+def snli_dev_reader():
+    return sick_reader(src_filename=data_dir+"clean_snli_1.0rc3_dev.txt", semafor_filename=data_dir+"snli_dev_semafor.xml")
+
+def snli_test_reader():
+    return sick_reader(src_filename=data_dir+"clean_snli_1.0rc3_test.txt", semafor_filename=data_dir+"snli_test_semafor.xml")
+

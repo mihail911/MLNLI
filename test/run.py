@@ -15,6 +15,7 @@ import logging
 from models.models import *
 from argparse import ArgumentParser
 from util.colors import color, prettyPrint
+from util.utils import snli_dev_reader, snli_reader, snli_train_reader, snli_test_reader
 from ast import literal_eval as str2dict
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
 import sklearn
@@ -27,7 +28,7 @@ def run(args):
     model, feat_vec, labels = train_model(params)
     load, params['load_vectors'] = params['load_vectors'], True
    
-    test_model(params, model, feat_vec, labels, data_set = 'train_dev')
+    test_model(params, model, feat_vec, labels, data_set = 'train')
     params['load_vectors'] = load
     test_model(params, model, feat_vec, labels, data_set = 'test')
     prettyPrint("-" * 80, color.YELLOW)
@@ -60,7 +61,7 @@ def train_model(params):
     prettyPrint("-" * 80 + "\nTraining model '{0}' ... ".format(params['model']), color.YELLOW)
     prettyPrint("With features: {0}".format(params['features']), color.YELLOW)
     start_train = time.time()
-    model, feat_vec, labels = build_model(clf = params['model'], train_reader = sick_train_dev_reader, features = params['features'], file_name = params['feature_file'] + ".train_dev",
+    model, feat_vec, labels = build_model(clf = params['model'], train_reader = snli_train_reader, features = params['features'], file_name = params['feature_file'] + ".train_dev",
 									  load_vec = params['load_vectors'], feature_selector = SelectKBest(chi2, k = 'all'))
     
     best_model = parameter_tune(params['model'], model, feat_vec, labels, grid = params['param_grid'])
@@ -73,7 +74,7 @@ def train_model(params):
 def test_model (params, best_model, feat_vec, labels, data_set = 'train'):
     ''' Tests a trained model. '''
     
-    evaluate_model(best_model, reader = 'sick_{0}_reader'.format(data_set),
+    evaluate_model(best_model, reader = 'snli_{0}_reader'.format(data_set),
                     features = params['features'],
                     file_name = params['feature_file'],
                     load_vec = params['load_vectors'])

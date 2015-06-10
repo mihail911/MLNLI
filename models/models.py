@@ -21,7 +21,7 @@ from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
-from util.utils import sick_train_reader, sick_dev_reader, sick_train_dev_reader, sick_test_reader
+from util.utils import sick_train_reader, sick_dev_reader, sick_train_dev_reader, sick_test_reader, snli_test_reader, snli_train_reader, snli_dev_reader
 from util.colors import color, prettyPrint
 from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
@@ -104,9 +104,9 @@ def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vecto
     ''' Builds the model of choice. ''' 
     global _models
     ''' Putting RFE in the pipeline '''
-    feature_selector = RFE( LogisticRegression(solver='lbfgs'),
-                             n_features_to_select = 5000,
-                             step = 0.05)
+    #feature_selector = RFE( LogisticRegression(solver='lbfgs'),
+    #                         n_features_to_select = 5000,
+    #                         step = 0.05)
     
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
                         ('clf', _models[clf])])
@@ -141,13 +141,13 @@ def parameter_tune (model = 'log_reg', pipeline = None, feat_vec = None, labels 
 
 def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, file_name = "", load_vec = None):
     """Evaluates the given model on the test data and outputs statistics."""
-    if reader == sick_dev_reader:
+    if reader == sick_dev_reader or reader == snli_dev_reader:
         reader_name = 'Dev'
-    elif reader == sick_train_reader:
+    elif reader == sick_train_dev_reader:
         reader_name = 'Train + Dev'
-    elif reader == sick_test_reader:
+    elif reader == sick_test_reader or reader == snli_test_reader:
         reader_name = 'Test'
-    else:
+    elif reader == sick_train_reader or reader == snli_train_reader:
         reader_name = 'Train'
 
     if len(pipeline.steps) == 2: #Only have a vectorizer and a classifier step in pipeline
@@ -160,17 +160,27 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     prettyColor = color.RED
     if reader == 'sick_dev_reader':
         reader = sick_dev_reader
-        file_name += ".dev"
+        file_name += '.dev'
     elif reader == 'sick_train_dev_reader':
         reader = sick_train_dev_reader
-        file_name += ".train_dev"
+        file_name += '.train_dev'
     elif reader == 'sick_train_reader':
         reader = sick_train_reader
-        file_name += ".train"
+        file_name += '.train'
         prettyColor = color.CYAN
+    elif reader == 'snli_train_reader':
+        reader = sick_train_reader
+        prettyColor = color.CYAN
+        file_name += '.train'
+    elif reader == 'snli_dev_reader':
+        reader = snli_dev_reader
+        file_name += '.dev'
+    elif reader == 'snli_test_reader':
+        reader = snli_test_reader
+        file_name += '.test'
     else:
         reader = sick_test_reader
-        file_name += ".test"
+        file_name += '.test'
     feat_vec, gold_labels = obtain_vectors(file_name, load_vec, reader, features)
     
     predicted_labels = pipeline.predict(feat_vec)
