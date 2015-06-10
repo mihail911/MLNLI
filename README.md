@@ -10,8 +10,9 @@ task.  Data resides in the nli-data/ directory.
 
 * The format of the `.conf` files is as follows:
     * `model:` specifies the learning model to use.  
-      	       - Logistic Regression: 	    `log_reg`
-	       - Naive Bayes:		    `naive-bayes'`
+    
+	       - Naive Bayes:		    `naive-bayes`
+	       - Logistic Regression: 	    `log_reg`
 	       - Support Vector Machine:    `svm`
 	       - Random Forest: 	    `forest`
 	       - Extra Tree Random Forest:  `extra_tree`
@@ -26,11 +27,10 @@ task.  Data resides in the nli-data/ directory.
          vectors will be loaded from the [feature_file] name in output/,
          if it exists.  Setting load_vectors to false is best for
          modifying an existing feature.  
-    * `plot` [Optional] : If set to 'true', the classifier will train on a 2-D
+    * `plot` [Optional] : If set to `true`, the classifier will train on a 2-D
          projection of the selected feature set, and the output will be a
          plot of the decision boundary learned, saved in output/plot.png.
-
-    * `param_grid:` [Optional] Gives a range of hyperparameters for the pipeline to optimize over.  If not given, the default 
+    * `param_grid` [Optional]: Gives a range of hyperparameters for the pipeline to optimize over.  If not given, the default 
          optimization grid at the top of features/features.py for the given model will be used.  The expected argument is a 
          python dictionary, with iterables as values (i.e. numpy.arange may be used)
 
@@ -40,8 +40,9 @@ Feature sets are saved by default in output/.
   the configuration file used to run.  It tries each feature 
   with the word_overlap baseline in parallel, and saves in
   "output/wo+[feature_name]".  Arguments are
-       * --conf [CONF_FILE_NAME]
-       * --mp 	[Number of processes to deploy in parallel]
+
+	* --conf [CONF_FILE_NAME]
+	* --mp 	[Number of processes to deploy in parallel]
  
   Note that ANSI color escape does not work when writing to files.  It is
   recommended that you modify the prettyPrint function in util/colors.py
