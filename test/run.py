@@ -16,8 +16,9 @@ from models.models import *
 from argparse import ArgumentParser
 from util.colors import color, prettyPrint
 from ast import literal_eval as str2dict
-
 from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
+import sklearn
+
 
 def run(args):
     ''' Provides a simple execution of the test harness from

@@ -14,10 +14,10 @@ import cPickle as pickle
 import time
 
 from features.features import word_cross_product_features, word_overlap_features, hypernym_features, featurizer
-from sklearn.feature_selection import SelectFpr, chi2, SelectKBest
+from sklearn.feature_selection import SelectFpr, chi2, SelectKBest, RFE
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, ExtraTreesClassifier
 from sklearn.linear_model import LogisticRegression, SGDClassifier
 from sklearn.naive_bayes import MultinomialNB as MultNB
 from sklearn.svm import SVC
@@ -27,11 +27,13 @@ from sklearn import metrics
 from sklearn.grid_search import GridSearchCV
 
 _models = {"forest" : RandomForestClassifier(n_estimators = 17, criterion = 'entropy', n_jobs = -1),
+           "extra_tree" : ExtraTreesClassifier(n_estimators = 100, criterion = 'entropy', n_jobs = -1, max_features = None,
+                                              max_depth = 200), 
            "log_reg" : LogisticRegression(), 
            "svm" : SVC(kernel='linear'),
            "naive_bayes" : MultNB(alpha = 1.0, fit_prior = True),
            "linear" : SGDClassifier(loss = 'hinge', alpha = 0.001, n_jobs= -1)
-           # n_jobs = -1 is necessary for an sgdclassifier
+           
 
            }
 
@@ -101,6 +103,10 @@ def build_model(clf = "log_reg", train_reader = sick_train_reader, feature_vecto
                              features = None, feature_selector = SelectFpr(chi2, alpha = 0.05), file_name = None, load_vec = None):
     ''' Builds the model of choice. ''' 
     global _models
+    ''' Putting RFE in the pipeline '''
+    feature_selector = RFE( LogisticRegression(solver='lbfgs'),
+                             n_features_to_select = 5000,
+                             step = 0.05)
     
     clf_pipe = Pipeline([('dict_vector', feature_vectorizer), ('feature_selector', feature_selector), 
                         ('clf', _models[clf])])
@@ -168,5 +174,5 @@ def evaluate_model(pipeline = None, reader = sick_dev_reader, features = None, f
     feat_vec, gold_labels = obtain_vectors(file_name, load_vec, reader, features)
     
     predicted_labels = pipeline.predict(feat_vec)
-    prettyPrint( metrics.classification_report(gold_labels, predicted_labels, digits=5), prettyColor)
+    prettyPrint( metrics.classification_report(gold_labels, predicted_labels, digits = 5), prettyColor)
 
